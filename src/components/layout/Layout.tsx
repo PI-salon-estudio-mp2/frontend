@@ -28,7 +28,7 @@ export function Layout() {
     <div className="flex min-h-dvh flex-col">
       <a
         href="#contenido"
-        className="sr-only z-50 rounded-xl bg-ink px-4 py-3 font-bold text-white focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+        className="sr-only rounded-xl bg-ink font-bold text-white shadow-lg focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-5 focus:py-3"
       >
         Saltar al contenido principal
       </a>

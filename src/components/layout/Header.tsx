@@ -6,7 +6,7 @@ import { Icon } from '../ui/Icon';
 import { Logo } from './Logo';
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-  `inline-flex min-h-11 items-center rounded-xl px-3.5 font-bold transition-colors ${
+  `inline-flex min-h-11 items-center rounded-xl px-3.5 font-bold transition-[color,background-color] ${
     isActive ? 'bg-primary-50 text-primary-700' : 'text-muted hover:bg-primary-50 hover:text-ink'
   }`;
 

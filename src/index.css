@@ -44,8 +44,8 @@
 
 @layer base {
   :root {
-    /* Color del indicador de foco (WCAG 2.4.7 / 2.4.13). */
-    --focus-ring: #c2410c;
+    /* Color del indicador de foco (WCAG 2.4.7): color principal, 7.1:1 sobre blanco. */
+    --focus-ring: var(--color-primary-600);
     color-scheme: light;
   }
 
@@ -66,7 +66,7 @@
 
   :focus-visible {
     outline: 3px solid var(--focus-ring);
-    outline-offset: 3px;
+    outline-offset: 2px;
     border-radius: 0.375rem;
   }
 
