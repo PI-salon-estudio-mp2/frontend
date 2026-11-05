@@ -1,0 +1,59 @@
+# Levanta todo el sistema en local con un solo comando:
+#   docker compose up --build
+#
+#   Frontend      -> http://localhost:8080
+#   Backend API   -> http://localhost:3000   (Swagger: http://localhost:3000/docs)
+#
+# Frontend y backend están en repositorios distintos. Clónalos uno al lado del otro:
+#
+#   proyecto/
+#   ├── frontend/      (este repositorio, aquí está este archivo)
+#   └── backend-api/   (repositorio del BE Lead: PI-salon-estudio-mp2/backend-api)
+#
+# y ejecuta el comando DESDE esta carpeta (frontend/).
+# Si el repositorio del backend tiene otro nombre, cambia BACKEND_DIR:
+#   BACKEND_DIR=../mi-backend docker compose up --build
+#
+# Las credenciales viven en el .env del backend (NO se sube a GitHub; ver .env.example de cada servicio).
+
+services:
+  frontend:
+    build:
+      context: .
+      args:
+        # El navegador del usuario es quien llama a la API, por eso se usa
+        # la dirección publicada en el equipo (localhost), no el nombre del servicio.
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+        VITE_API_DATO_PATH: ${VITE_API_DATO_PATH:-/api/base-tecnica}
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend-api
+    restart: unless-stopped
+
+  backend-api:
+    build:
+      context: ${BACKEND_DIR:-../backend-api}
+    env_file:
+      - ${BACKEND_DIR:-../backend-api}/.env
+    environment:
+      PORT: 3000
+      # Orígenes que backend-api permite por CORS (variable CORS_ORIGINS del backend):
+      # 8080 = frontend en Docker, 5173 = frontend con npm run dev.
+      CORS_ORIGINS: http://localhost:8080,http://localhost:5173
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+  # Se activa en el Sprint 2 (TS-02). Ajusta la ruta al repositorio o carpeta del servidor de tiempo real:
+  # backend-realtime:
+  #   build:
+  #     context: ../backend-realtime
+  #   env_file:
+  #     - ../backend-realtime/.env
+  #   environment:
+  #     PORT: 4000
+  #     CORS_ORIGINS: http://localhost:8080,http://localhost:5173
+  #   ports:
+  #     - "4000:4000"
+  #   restart: unless-stopped
