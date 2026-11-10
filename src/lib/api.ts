@@ -8,13 +8,22 @@ export class ApiError extends Error {
   readonly status?: number;
   /** Código de error de backend-api, por ejemplo «DB_UNAVAILABLE». */
   readonly code?: string;
+  /** Mensajes por campo cuando el servidor rechaza un formulario (400 VALIDATION_ERROR). */
+  readonly fields?: Record<string, string>;
 
-  constructor(kind: ApiErrorKind, message: string, status?: number, code?: string) {
+  constructor(
+    kind: ApiErrorKind,
+    message: string,
+    status?: number,
+    code?: string,
+    fields?: Record<string, string>,
+  ) {
     super(message);
     this.name = 'ApiError';
     this.kind = kind;
     this.status = status;
     this.code = code;
+    this.fields = fields;
   }
 }
 
@@ -25,34 +34,58 @@ const MENSAJES_POR_CODIGO: Record<string, string> = {
   INVALID_DATA: 'El dato guardado en la base de datos no tiene el formato correcto.',
   DB_UNAVAILABLE: 'El servidor no pudo conectarse con la base de datos. Inténtalo de nuevo en unos segundos.',
   INTERNAL_ERROR: 'El servidor tuvo un problema al procesar la solicitud.',
+  USERNAME_TAKEN: 'Ese nombre de usuario ya está ocupado. Prueba con otro.',
+  EMAIL_TAKEN: 'Ese correo ya tiene una cuenta. Inicia sesión o usa otro correo.',
+  VALIDATION_ERROR: 'Revisa los datos del formulario e inténtalo de nuevo.',
+  UNAUTHORIZED: 'Tu sesión no es válida o expiró. Inicia sesión de nuevo.',
 };
 
 function mensajeHttp(status: number, code?: string): string {
   if (code && MENSAJES_POR_CODIGO[code]) return MENSAJES_POR_CODIGO[code];
-  if (status === 401 || status === 403) return 'No tienes permiso para ver esta información.';
+  if (status === 401) return 'Tu sesión no es válida o expiró. Inicia sesión de nuevo.';
+  if (status === 403) return 'No tienes permiso para ver esta información.';
   if (status === 404) return 'El servidor no encontró la información solicitada.';
   if (status >= 500) return 'El servidor tuvo un problema al procesar la solicitud.';
   return 'El servidor no pudo responder a la solicitud.';
 }
 
-/** Lee el código del cuerpo de error { "error": { "code": "..." } } si viene en JSON. */
-async function leerCodigoError(response: Response): Promise<string | undefined> {
+interface CuerpoError {
+  code?: string;
+  fields?: Record<string, string>;
+}
+
+/** Lee { "error": { "code", "fields" } } del cuerpo de una respuesta con error. */
+async function leerCuerpoError(response: Response): Promise<CuerpoError> {
   try {
     const body: unknown = await response.json();
     if (typeof body === 'object' && body !== null && 'error' in body) {
       const error = (body as { error: unknown }).error;
-      if (typeof error === 'object' && error !== null && 'code' in error) {
-        const code = (error as { code: unknown }).code;
-        return typeof code === 'string' ? code : undefined;
+      if (typeof error === 'object' && error !== null) {
+        const { code, fields } = error as { code?: unknown; fields?: unknown };
+        const campos: Record<string, string> = {};
+        if (typeof fields === 'object' && fields !== null) {
+          for (const [nombre, mensaje] of Object.entries(fields)) {
+            if (typeof mensaje === 'string') campos[nombre] = mensaje;
+          }
+        }
+        return {
+          code: typeof code === 'string' ? code : undefined,
+          fields: Object.keys(campos).length > 0 ? campos : undefined,
+        };
       }
     }
   } catch {
     // El cuerpo no es JSON: nos quedamos con el código HTTP.
   }
-  return undefined;
+  return {};
 }
 
-interface ApiGetOptions<T> {
+interface ApiRequestOptions<T> {
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  /** Cuerpo JSON de la petición. */
+  body?: unknown;
+  /** ID token de Firebase: se envía como «Authorization: Bearer». */
+  token?: string;
   /** Permite cancelar la petición (por ejemplo, al salir de la pantalla). */
   signal?: AbortSignal;
   /**
@@ -65,11 +98,11 @@ interface ApiGetOptions<T> {
 }
 
 /**
- * GET a la API publicada. Todo dato del producto pasa por aquí:
+ * Petición a la API publicada. Todo dato del producto pasa por aquí:
  * el frontend NUNCA consulta Firestore directamente.
  */
-export async function apiGet<T>(path: string, options: ApiGetOptions<T>): Promise<T> {
-  const { signal, timeoutMs = 70_000, parse } = options;
+export async function apiRequest<T>(path: string, options: ApiRequestOptions<T>): Promise<T> {
+  const { method = 'GET', body, token, signal, timeoutMs = 70_000, parse } = options;
 
   if (!API_URL) {
     throw new ApiError(
@@ -77,6 +110,10 @@ export async function apiGet<T>(path: string, options: ApiGetOptions<T>): Promis
       'La aplicación no tiene configurada la dirección de la API (variable VITE_API_URL).',
     );
   }
+
+  const headers: Record<string, string> = { Accept: 'application/json' };
+  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  if (token) headers.Authorization = `Bearer ${token}`;
 
   const controller = new AbortController();
   let timedOut = false;
@@ -91,8 +128,9 @@ export async function apiGet<T>(path: string, options: ApiGetOptions<T>): Promis
     let response: Response;
     try {
       response = await fetch(`${API_URL}${path.startsWith('/') ? path : `/${path}`}`, {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
+        method,
+        headers,
+        body: body !== undefined ? JSON.stringify(body) : undefined,
         signal: controller.signal,
       });
     } catch (error) {
@@ -110,9 +148,11 @@ export async function apiGet<T>(path: string, options: ApiGetOptions<T>): Promis
     }
 
     if (!response.ok) {
-      const code = await leerCodigoError(response);
-      throw new ApiError('http', mensajeHttp(response.status, code), response.status, code);
+      const { code, fields } = await leerCuerpoError(response);
+      throw new ApiError('http', mensajeHttp(response.status, code), response.status, code, fields);
     }
+
+    if (response.status === 204) return parse(undefined);
 
     let json: unknown;
     try {
@@ -125,6 +165,14 @@ export async function apiGet<T>(path: string, options: ApiGetOptions<T>): Promis
     clearTimeout(timer);
     signal?.removeEventListener('abort', onExternalAbort);
   }
+}
+
+/** GET a la API publicada. */
+export function apiGet<T>(
+  path: string,
+  options: Omit<ApiRequestOptions<T>, 'method' | 'body'>,
+): Promise<T> {
+  return apiRequest(path, { ...options, method: 'GET' });
 }
 
 export function toApiError(error: unknown): ApiError {
