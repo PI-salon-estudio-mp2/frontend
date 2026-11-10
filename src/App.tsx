@@ -1,5 +1,6 @@
 import { Route, Routes } from 'react-router';
 import { Layout } from './components/layout/Layout';
+import { RequireAuth } from './features/auth/RequireAuth';
 import { Accesibilidad } from './pages/Accesibilidad';
 import { CrearSala } from './pages/CrearSala';
 import { EditarSala } from './pages/EditarSala';
@@ -20,18 +21,20 @@ export default function App() {
       <Route element={<Layout />}>
         <Route path={RUTAS.inicio} element={<Inicio />} />
 
-        {/* Públicas: autenticación (Sprint 1) */}
+        {/* Públicas: autenticación */}
         <Route path={RUTAS.ingresar} element={<IniciarSesion />} />
         <Route path={RUTAS.registro} element={<Registro />} />
         <Route path={RUTAS.elegirUsername} element={<ElegirUsername />} />
 
-        {/* Privadas: se protegerán con sesión en el Sprint 1 */}
-        <Route path={RUTAS.panel} element={<Panel />} />
-        <Route path={RUTAS.perfil} element={<Perfil />} />
-        <Route path={RUTAS.crearSala} element={<CrearSala />} />
-        <Route path={RUTAS.unirseSala} element={<UnirseSala />} />
-        <Route path={RUTAS.sala} element={<Sala />} />
-        <Route path={RUTAS.editarSala} element={<EditarSala />} />
+        {/* Privadas: exigen sesión iniciada */}
+        <Route element={<RequireAuth />}>
+          <Route path={RUTAS.panel} element={<Panel />} />
+          <Route path={RUTAS.perfil} element={<Perfil />} />
+          <Route path={RUTAS.crearSala} element={<CrearSala />} />
+          <Route path={RUTAS.unirseSala} element={<UnirseSala />} />
+          <Route path={RUTAS.sala} element={<Sala />} />
+          <Route path={RUTAS.editarSala} element={<EditarSala />} />
+        </Route>
 
         <Route path={RUTAS.accesibilidad} element={<Accesibilidad />} />
         <Route path="*" element={<NoEncontrado />} />

@@ -25,8 +25,11 @@ export interface EnlaceNav {
   end?: boolean;
 }
 
-/** Navegación principal del encabezado. */
-export const NAV_PRINCIPAL: EnlaceNav[] = [
+/** Navegación del encabezado para quien aún no inició sesión. */
+export const NAV_PUBLICA: EnlaceNav[] = [{ to: RUTAS.inicio, label: 'Inicio', end: true }];
+
+/** Navegación del encabezado con la sesión iniciada. */
+export const NAV_PRIVADA: EnlaceNav[] = [
   { to: RUTAS.inicio, label: 'Inicio', end: true },
   { to: RUTAS.panel, label: 'Mis salas' },
   { to: RUTAS.unirseSala, label: 'Unirme a una sala' },
