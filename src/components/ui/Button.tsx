@@ -6,8 +6,9 @@ export type ButtonSize = 'md' | 'sm';
 
 const BASE =
   'inline-flex items-center justify-center gap-2 rounded-xl font-bold whitespace-nowrap ' +
-  'transition-[color,background-color] duration-150 disabled:cursor-not-allowed disabled:opacity-60';
-
+  'transition-[color,background-color] duration-150 disabled:cursor-not-allowed disabled:opacity-60 ' +
+  'aria-disabled:cursor-not-allowed aria-disabled:opacity-60';
+  
 const VARIANTS: Record<ButtonVariant, string> = {
   primary: 'bg-primary-600 text-white shadow-sm hover:bg-primary-700 active:bg-primary-800',
   secondary:
