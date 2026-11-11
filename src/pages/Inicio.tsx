@@ -3,6 +3,7 @@ import { Icon, type IconName } from '../components/ui/Icon';
 import { DatoBaseCard } from '../features/base-tecnica/DatoBaseCard';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { RUTAS } from '../routes/rutas';
+import { useAuth } from '../features/auth/AuthContext';
 
 const FUNCIONES: { icono: IconName; titulo: string; texto: string }[] = [
   {
@@ -30,6 +31,9 @@ const FUNCIONES: { icono: IconName; titulo: string; texto: string }[] = [
 export function Inicio() {
   usePageTitle('Inicio');
 
+  const { estado } = useAuth();
+  const autenticado = estado.status === 'autenticado';
+
   return (
     <>
       <section className="relative overflow-hidden border-b border-line bg-surface">
@@ -51,10 +55,17 @@ export function Inicio() {
               pantalla sin instalar nada.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <ButtonLink to={RUTAS.registro}>
-                Crear cuenta gratis
-                <Icon name="arrowRight" />
-              </ButtonLink>
+              {autenticado ? (
+                <ButtonLink to={RUTAS.panel}>
+                  Ir a mis salas
+                  <Icon name="arrowRight" />
+                </ButtonLink>
+              ) : (
+                <ButtonLink to={RUTAS.registro}>
+                  Crear cuenta gratis
+                  <Icon name="arrowRight" />
+                </ButtonLink>
+              )}
               <ButtonLink to={RUTAS.unirseSala} variant="secondary">
                 <Icon name="door" />
                 Unirme con un código
