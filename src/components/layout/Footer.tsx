@@ -1,35 +1,53 @@
 import { Link } from 'react-router';
 import { APP_NAME } from '../../config/app';
+import { useAuth } from '../../features/auth/AuthContext';
 import { RUTAS } from '../../routes/rutas';
 import { Logo } from './Logo';
 
-const GRUPOS = [
-  {
-    titulo: 'Salas',
-    enlaces: [
-      { to: RUTAS.panel, label: 'Mis salas' },
-      { to: RUTAS.crearSala, label: 'Crear una sala' },
-      { to: RUTAS.unirseSala, label: 'Unirme a una sala' },
-    ],
-  },
-  {
-    titulo: 'Cuenta',
-    enlaces: [
-      { to: RUTAS.ingresar, label: 'Iniciar sesión' },
-      { to: RUTAS.registro, label: 'Crear cuenta' },
-      { to: RUTAS.perfil, label: 'Mi perfil' },
-    ],
-  },
-  {
-    titulo: 'Ayuda',
-    enlaces: [{ to: RUTAS.accesibilidad, label: 'Declaración de accesibilidad' }],
-  },
-];
+interface Grupo {
+  titulo: string;
+  enlaces: { to: string; label: string }[];
+}
 
 export function Footer() {
+  const { estado } = useAuth();
+  const autenticado = estado.status === 'autenticado';
+
+  const grupos: Grupo[] = [
+    ...(autenticado
+      ? [
+          {
+            titulo: 'Salas',
+            enlaces: [
+              { to: RUTAS.panel, label: 'Mis salas' },
+              { to: RUTAS.crearSala, label: 'Crear una sala' },
+              { to: RUTAS.unirseSala, label: 'Unirme a una sala' },
+            ],
+          },
+        ]
+      : []),
+    {
+      titulo: 'Cuenta',
+      enlaces: autenticado
+        ? [{ to: RUTAS.perfil, label: 'Mi perfil' }]
+        : [
+            { to: RUTAS.ingresar, label: 'Iniciar sesión' },
+            { to: RUTAS.registro, label: 'Crear cuenta' },
+          ],
+    },
+    {
+      titulo: 'Ayuda',
+      enlaces: [{ to: RUTAS.accesibilidad, label: 'Declaración de accesibilidad' }],
+    },
+  ];
+
   return (
     <footer className="on-dark mt-auto bg-ink text-white">
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-[1.4fr_repeat(3,1fr)]">
+      <div
+        className={`mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:px-6 ${
+          autenticado ? 'md:grid-cols-[1.4fr_repeat(3,1fr)]' : 'md:grid-cols-[1.4fr_repeat(2,1fr)]'
+        }`}
+      >
         <div>
           <Logo tone="light" />
           <p className="mt-4 max-w-xs text-primary-200">
@@ -37,7 +55,7 @@ export function Footer() {
           </p>
         </div>
 
-        {GRUPOS.map((grupo) => (
+        {grupos.map((grupo) => (
           <nav key={grupo.titulo} aria-label={`Pie de página: ${grupo.titulo}`}>
             <h2 className="text-sm font-bold tracking-wide text-accent-300 uppercase">{grupo.titulo}</h2>
             <ul className="mt-3 space-y-1">

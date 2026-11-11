@@ -69,7 +69,9 @@ export function Registro() {
   const [enviando, setEnviando] = useState<'registro' | 'google' | null>(null);
   const [enfoque, setEnfoque] = useState(0);
 
-  if (estado.status === 'autenticado') return <Navigate to={RUTAS.panel} replace />;
+   if (estado.status === 'autenticado') {
+    return <Navigate to={RUTAS.panel} replace state={enviando ? { bienvenida: true } : undefined} />;
+  }
   if (estado.status === 'sin-username') return <Navigate to={RUTAS.elegirUsername} replace />;
   if (estado.status === 'cargando' && !enviando) return <PantallaCarga texto="Verificando tu sesión…" />;
 
