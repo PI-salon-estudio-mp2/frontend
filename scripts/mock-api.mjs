@@ -130,6 +130,23 @@ createServer(async (req, res) => {
     return json(res, 201, { data: perfil });
   }
 
+  if (path === '/api/auth/registro' && req.method === 'POST') {
+    const c = (await leerCuerpo(req)) ?? {};
+    const username = String(c.username ?? '').trim().toLowerCase();
+    const correo = String(c.correo ?? '').trim().toLowerCase();
+    const fields = {};
+    for (const campo of ['nombres', 'apellidos', 'avatar', 'correo', 'contrasena']) {
+      if (!String(c[campo] ?? '').trim()) fields[campo] = 'Este campo es obligatorio.';
+    }
+    if (!USERNAME_REGEX.test(username)) {
+      fields.username = 'Usa entre 3 y 20 caracteres: letras minúsculas, números o guion bajo (_).';
+    }
+    if (Object.keys(fields).length > 0) return error(res, 400, 'VALIDATION_ERROR', 'Datos inválidos', fields);
+    if (usernameOcupado(username, '')) return error(res, 409, 'USERNAME_TAKEN', 'Ese nombre de usuario ya está ocupado. Prueba con otro.');
+    if (correo === 'existente@correo.com') return error(res, 409, 'EMAIL_TAKEN', 'Ese correo ya tiene una cuenta. Inicia sesión o usa otro correo.');
+    return json(res, 201, { data: { uid: `mock-${Date.now()}` } });
+  }
+
   error(res, 404, 'ROUTE_NOT_FOUND', `La ruta ${req.method} ${req.url} no existe`);
 }).listen(PORT, () => {
   console.log(`API simulada en http://localhost:${PORT} (base técnica: ${MODE}, perfiles: ${PERFIL})`);
