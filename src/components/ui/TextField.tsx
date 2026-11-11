@@ -7,12 +7,23 @@ export interface TextFieldProps
   label: string;
   hint?: string;
   error?: string;
+  /** Acción que se muestra junto al error (por ejemplo, un enlace a iniciar sesión). */
+  accionError?: ReactNode;
   obligatorio?: boolean;
   /** Contenido dentro del campo, a la derecha (por ejemplo, «Mostrar contraseña»). */
   adornment?: ReactNode;
 }
 
-export function TextField({ id, label, hint, error, obligatorio, adornment, ...rest }: TextFieldProps) {
+export function TextField({
+  id,
+  label,
+  hint,
+  error,
+  accionError,
+  obligatorio,
+  adornment,
+  ...rest
+}: TextFieldProps) {
   const hintId = hint ? `${id}-hint` : undefined;
   const errorId = error ? `${id}-error` : undefined;
   const describedBy = [hintId, errorId].filter(Boolean).join(' ') || undefined;
@@ -47,6 +58,7 @@ export function TextField({ id, label, hint, error, obligatorio, adornment, ...r
           <span>{error}</span>
         </p>
       )}
+      {error && accionError && <div className="mt-1 text-sm">{accionError}</div>}
     </div>
   );
 }
