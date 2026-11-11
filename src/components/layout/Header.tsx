@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { NavLink, useLocation } from 'react-router';
-import { NAV_PRINCIPAL, RUTAS } from '../../routes/rutas';
-import { ButtonLink } from '../ui/Button';
+import { NavLink, useLocation, useNavigate } from 'react-router';
+import { Avatar } from '../../features/auth/Avatar';
+import { useAuth } from '../../features/auth/AuthContext';
+import { NAV_PRIVADA, NAV_PUBLICA, RUTAS } from '../../routes/rutas';
+import { Button, ButtonLink } from '../ui/Button';
 import { Icon } from '../ui/Icon';
 import { Logo } from './Logo';
 
@@ -10,10 +12,55 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     isActive ? 'bg-primary-50 text-primary-700' : 'text-muted hover:bg-primary-50 hover:text-ink'
   }`;
 
+/** Parte del encabezado que cambia según haya sesión o no. */
+function AccionesSesion({ movil }: { movil: boolean }) {
+  const { estado, cerrarSesion } = useAuth();
+  const navigate = useNavigate();
+
+  const salir = async () => {
+    await cerrarSesion();
+    navigate(RUTAS.ingresar, { replace: true });
+  };
+
+  if (estado.status === 'cargando') return null;
+
+  if (estado.status === 'anonimo') {
+    return (
+      <>
+        <ButtonLink to={RUTAS.ingresar} variant={movil ? 'secondary' : 'ghost'}>
+          Iniciar sesión
+        </ButtonLink>
+        <ButtonLink to={RUTAS.registro} variant="primary">
+          Crear cuenta
+        </ButtonLink>
+      </>
+    );
+  }
+
+  return (
+    <>
+      {estado.status === 'autenticado' && (
+        <span className="flex items-center gap-2 font-bold text-ink">
+          <Avatar
+            id={estado.perfil.avatar}
+            iniciales={estado.perfil.username.charAt(0).toUpperCase()}
+          />
+          <span>@{estado.perfil.username}</span>
+        </span>
+      )}
+      <Button variant="secondary" onClick={() => void salir()}>
+        Cerrar sesión
+      </Button>
+    </>
+  );
+}
+
 export function Header() {
   const [menuAbierto, setMenuAbierto] = useState(false);
   const botonMenuRef = useRef<HTMLButtonElement>(null);
   const { pathname } = useLocation();
+  const { estado } = useAuth();
+  const items = estado.status === 'autenticado' ? NAV_PRIVADA : NAV_PUBLICA;
 
   // Al cambiar de página se cierra el menú móvil.
   useEffect(() => {
@@ -40,7 +87,7 @@ export function Header() {
 
         <nav aria-label="Principal" className="ml-6 hidden lg:block">
           <ul className="flex items-center gap-1">
-            {NAV_PRINCIPAL.map((item) => (
+            {items.map((item) => (
               <li key={item.to}>
                 <NavLink to={item.to} end={item.end} className={navLinkClass}>
                   {item.label}
@@ -50,13 +97,8 @@ export function Header() {
           </ul>
         </nav>
 
-        <div className="ml-auto hidden items-center gap-2 lg:flex">
-          <ButtonLink to={RUTAS.ingresar} variant="ghost">
-            Iniciar sesión
-          </ButtonLink>
-          <ButtonLink to={RUTAS.registro} variant="primary">
-            Crear cuenta
-          </ButtonLink>
+        <div className="ml-auto hidden items-center gap-3 lg:flex">
+          <AccionesSesion movil={false} />
         </div>
 
         <button
@@ -75,21 +117,20 @@ export function Header() {
       <div id="menu-movil" hidden={!menuAbierto} className="border-t border-line bg-surface lg:hidden">
         <nav aria-label="Principal (móvil)" className="mx-auto max-w-6xl px-4 py-4 sm:px-6">
           <ul className="flex flex-col gap-1">
-            {NAV_PRINCIPAL.map((item) => (
+            {items.map((item) => (
               <li key={item.to}>
-                <NavLink to={item.to} end={item.end} className={(s: { isActive: boolean }) => `${navLinkClass(s)} w-full`}>
+                <NavLink
+                  to={item.to}
+                  end={item.end}
+                  className={(s: { isActive: boolean }) => `${navLinkClass(s)} w-full`}
+                >
                   {item.label}
                 </NavLink>
               </li>
             ))}
           </ul>
-          <div className="mt-4 grid grid-cols-2 gap-3 border-t border-line pt-4">
-            <ButtonLink to={RUTAS.ingresar} variant="secondary">
-              Iniciar sesión
-            </ButtonLink>
-            <ButtonLink to={RUTAS.registro} variant="primary">
-              Crear cuenta
-            </ButtonLink>
+          <div className="mt-4 grid grid-cols-2 items-center gap-3 border-t border-line pt-4">
+            <AccionesSesion movil />
           </div>
         </nav>
       </div>
