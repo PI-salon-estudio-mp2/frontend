@@ -28,7 +28,9 @@ export function ElegirUsername() {
 
   if (estado.status === 'cargando' && !enviando) return <PantallaCarga texto="Verificando tu sesión…" />;
   if (estado.status === 'anonimo') return <Navigate to={RUTAS.ingresar} replace />;
-  if (estado.status === 'autenticado') return <Navigate to={RUTAS.panel} replace />;
+    if (estado.status === 'autenticado') {
+    return <Navigate to={RUTAS.panel} replace state={enviando ? { bienvenida: true } : undefined} />;
+  }
 
   if (estado.status === 'error') {
     return (
