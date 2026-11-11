@@ -40,14 +40,15 @@ const leerCuerpo = (req) =>
     });
   });
 
-/** Decodifica (sin verificar) el ID token de Firebase del encabezado Authorization. */
 const leerUsuario = (req) => {
   const auth = req.headers.authorization ?? '';
   if (!auth.startsWith('Bearer ')) return null;
   try {
     const payload = JSON.parse(Buffer.from(auth.slice(7).split('.')[1], 'base64url').toString('utf8'));
     const uid = payload.user_id ?? payload.sub;
-    return uid ? { uid, correo: payload.email ?? '', nombre: payload.name ?? '' } : null;
+    return uid
+      ? { uid, correo: payload.email ?? '', nombre: payload.name ?? '', foto: payload.picture ?? '' }
+      : null;
   } catch {
     return null;
   }
@@ -60,7 +61,7 @@ const crearPerfil = (usuario, username) => {
     nombres,
     apellidos: resto.join(' ') || 'de Prueba',
     username,
-    avatar: 'azul',
+    avatar: usuario.foto || 'azul',
     correo: usuario.correo,
   };
 };
