@@ -8,7 +8,7 @@ import { useAuth } from './AuthContext';
 
 /** Protege las rutas privadas: sin sesión va al login y, después de entrar, vuelve a la ruta pedida. */
 export function RequireAuth() {
-  const { estado, recargarPerfil, cerrarSesion } = useAuth();
+  const { estado, avisoCierre, recargarPerfil, cerrarSesion } = useAuth();
   const location = useLocation();
 
   switch (estado.status) {
@@ -19,7 +19,7 @@ export function RequireAuth() {
         <Navigate
           to={RUTAS.ingresar}
           replace
-          state={{ from: `${location.pathname}${location.search}` }}
+          state={avisoCierre ? undefined : { from: `${location.pathname}${location.search}` }}
         />
       );
     case 'sin-username':

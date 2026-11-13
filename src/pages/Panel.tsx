@@ -6,6 +6,7 @@ import { Icon } from '../components/ui/Icon';
 import { PageHeader } from '../components/ui/PageHeader';
 import { useAuth } from '../features/auth/AuthContext';
 import { usePageTitle } from '../hooks/usePageTitle';
+import { nombrePropio } from '../features/auth/nombres';
 
 export function Panel() {
   usePageTitle('Mis salas');
@@ -15,7 +16,7 @@ export function Panel() {
 
   const saludo =
     estado.status === 'autenticado'
-      ? `Hola, ${estado.perfil.nombres || estado.perfil.username}`
+      ? `Hola, ${nombrePropio(estado.perfil.nombres) || estado.perfil.username}`
       : undefined;
 
   // La bienvenida solo aparece al llegar desde el registro y no se repite al recargar.

@@ -19,7 +19,7 @@ function AccionesSesion({ movil }: { movil: boolean }) {
 
   const salir = async () => {
     await cerrarSesion();
-    navigate(RUTAS.ingresar, { replace: true, state: { sesionCerrada: true } });
+    navigate(RUTAS.ingresar, { replace: true });
   };
 
   if (estado.status === 'cargando') return null;
