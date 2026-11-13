@@ -34,6 +34,8 @@ interface AuthContextValue {
   cerrarSesion: () => Promise<void>;
   recargarPerfil: () => Promise<void>;
   obtenerToken: () => Promise<string>;
+  avisoCierre: boolean;
+  descartarAvisoCierre: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -45,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [estado, setEstado] = useState<EstadoSesion>({ status: 'cargando' });
   // Evita que una respuesta lenta pise a una más reciente (por ejemplo, al cerrar sesión).
   const version = useRef(0);
+  const [avisoCierre, setAvisoCierre] = useState(false);
 
   const cargarPerfil = useCallback(async (user: User) => {
     const mia = ++version.current;
@@ -74,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setEstado({ status: 'anonimo' });
         return;
       }
+      setAvisoCierre(false);
       void cargarPerfil(user);
     });
   }, [cargarPerfil]);
@@ -87,8 +91,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const cerrarSesion = useCallback(async () => {
-    await signOut(auth);
+    setAvisoCierre(true);
+    try {
+      await signOut(auth);
+    } catch (e) {
+      setAvisoCierre(false);
+      throw e;
+    }
   }, []);
+
+  const descartarAvisoCierre = useCallback(() => setAvisoCierre(false), []);
 
   const recargarPerfil = useCallback(async () => {
     if (auth.currentUser) await cargarPerfil(auth.currentUser);
@@ -101,8 +113,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ estado, iniciarSesion, continuarConGoogle, cerrarSesion, recargarPerfil, obtenerToken }),
-    [estado, iniciarSesion, continuarConGoogle, cerrarSesion, recargarPerfil, obtenerToken],
+    () => ({
+      estado,
+      avisoCierre,
+      descartarAvisoCierre,
+      iniciarSesion,
+      continuarConGoogle,
+      cerrarSesion,
+      recargarPerfil,
+      obtenerToken,
+    }),
+    [estado, avisoCierre, descartarAvisoCierre, iniciarSesion, continuarConGoogle, cerrarSesion, recargarPerfil, obtenerToken],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
