@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from 'react';
-import { Link, Navigate, useLocation } from 'react-router';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { Link, Navigate, useLocation, useNavigate} from 'react-router';
 import { Alert } from '../components/ui/Alert';
 import { AvisoFormulario } from '../components/ui/AvisoFormulario';
 import { Button } from '../components/ui/Button';
@@ -35,6 +35,19 @@ export function IniciarSesion() {
   const [enviando, setEnviando] = useState<'correo' | 'google' | null>(null);
   const [enfoque, setEnfoque] = useState(0);
 
+  const navigate = useNavigate();
+  // El aviso solo aparece al llegar tras cerrar sesión y no se repite al recargar.
+  const [mostrarCierre, setMostrarCierre] = useState(
+    () => typeof location.state === 'object' && location.state !== null && 'sesionCerrada' in location.state,
+  );
+  const limpiado = useRef(false);
+  useEffect(() => {
+    if (mostrarCierre && !limpiado.current) {
+      limpiado.current = true;
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [mostrarCierre, navigate, location.pathname]);
+
   // Con sesión iniciada no tiene sentido ver el formulario.
   if (estado.status === 'autenticado') return <Navigate to={leerDestino(location.state)} replace />;
   if (estado.status === 'sin-username') return <Navigate to={RUTAS.elegirUsername} replace />;
@@ -51,6 +64,7 @@ export function IniciarSesion() {
     event.preventDefault();
     if (ocupado) return;
     setErrorGeneral(undefined);
+    setMostrarCierre(false);
 
     const nuevos: Errores = {
       correo: validarCorreo(correo),
@@ -75,6 +89,7 @@ export function IniciarSesion() {
   const onGoogle = async () => {
     if (ocupado) return;
     setErrorGeneral(undefined);
+    setMostrarCierre(false);
     setErrores({});
     setEnviando('google');
     try {
@@ -115,6 +130,10 @@ export function IniciarSesion() {
           </div>
         )}
 
+        <div role="status" className={mostrarCierre ? 'mb-6' : undefined}>
+          {mostrarCierre && <Alert tone="success" title="Cerraste tu sesión." />}
+        </div>
+        
         <AvisoFormulario mensaje={errorGeneral} />
         <FormErrorSummary errores={listaErrores} enfoque={enfoque} />
 

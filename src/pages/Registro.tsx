@@ -22,6 +22,7 @@ import {
   validarCorreo,
   validarNombre,
   validarUsername,
+  notaUsername,
 } from '../features/auth/validaciones';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { apiRequest, toApiError, type ApiError } from '../lib/api';
@@ -188,6 +189,8 @@ export function Registro() {
         )}
 
         <AvisoFormulario mensaje={errorGeneral} />
+        <BotonGoogle onClick={() => void onGoogle()} cargando={ocupado && enviando === 'google'} />
+        <SeparadorO texto="o regístrate con tu correo" />
         <FormErrorSummary errores={listaErrores} enfoque={enfoque} />
 
         <form noValidate onSubmit={onSubmit} className="space-y-5">
@@ -224,6 +227,7 @@ export function Registro() {
             spellCheck={false}
             obligatorio
             value={datos.username}
+            nota={notaUsername(datos.username)}
             error={errores.username}
             onChange={(e) => cambiar('username', e.target.value)}
           />
@@ -273,9 +277,6 @@ export function Registro() {
             {ocupado && enviando === 'registro' ? 'Creando tu cuenta…' : 'Crear cuenta'}
           </Button>
         </form>
-
-        <SeparadorO />
-        <BotonGoogle onClick={() => void onGoogle()} cargando={ocupado && enviando === 'google'} />
 
         <p className="sr-only" role="status">
           {ocupado ? 'Creando tu cuenta, espera un momento.' : ''}

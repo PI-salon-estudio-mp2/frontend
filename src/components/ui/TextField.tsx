@@ -6,6 +6,8 @@ export interface TextFieldProps
   id: string;
   label: string;
   hint?: string;
+  /** Texto de apoyo debajo del campo (por ejemplo, cómo se guardará lo escrito). */
+  nota?: string;
   error?: string;
   /** Acción que se muestra junto al error (por ejemplo, un enlace a iniciar sesión). */
   accionError?: ReactNode;
@@ -18,6 +20,7 @@ export function TextField({
   id,
   label,
   hint,
+  nota,
   error,
   accionError,
   obligatorio,
@@ -25,8 +28,9 @@ export function TextField({
   ...rest
 }: TextFieldProps) {
   const hintId = hint ? `${id}-hint` : undefined;
+  const notaId = nota ? `${id}-nota` : undefined;
   const errorId = error ? `${id}-error` : undefined;
-  const describedBy = [hintId, errorId].filter(Boolean).join(' ') || undefined;
+  const describedBy = [hintId, notaId, errorId].filter(Boolean).join(' ') || undefined;
 
   return (
     <div>
@@ -52,6 +56,11 @@ export function TextField({
         />
         {adornment && <div className="absolute inset-y-0 right-1 flex items-center">{adornment}</div>}
       </div>
+      {nota && (
+        <p id={notaId} className="mt-1.5 text-sm text-muted">
+          {nota}
+        </p>
+      )}
       {error && (
         <p id={errorId} className="mt-1.5 flex items-start gap-2 text-sm font-bold text-danger-700">
           <Icon name="alert" className="mt-0.5 size-4 shrink-0" />

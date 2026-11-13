@@ -32,7 +32,8 @@ export function Panel() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
-      <PageHeader eyebrow={saludo} title="Mis salas" description="Aquí verás las salas de estudio que crees." />
+      {saludo && <p className="mb-1 text-lg text-muted">{saludo}</p>}
+      <PageHeader title="Mis salas" description="Aquí verás las salas de estudio que crees." />
 
       <div role="status" className={mostrarBienvenida ? 'mb-6' : undefined}>
         {mostrarBienvenida && (

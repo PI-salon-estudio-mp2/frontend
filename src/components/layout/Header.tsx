@@ -19,7 +19,7 @@ function AccionesSesion({ movil }: { movil: boolean }) {
 
   const salir = async () => {
     await cerrarSesion();
-    navigate(RUTAS.ingresar, { replace: true });
+    navigate(RUTAS.ingresar, { replace: true, state: { sesionCerrada: true } });
   };
 
   if (estado.status === 'cargando') return null;
@@ -30,7 +30,7 @@ function AccionesSesion({ movil }: { movil: boolean }) {
         <ButtonLink to={RUTAS.ingresar} variant={movil ? 'secondary' : 'ghost'}>
           Iniciar sesión
         </ButtonLink>
-        <ButtonLink to={RUTAS.registro} variant="primary">
+        <ButtonLink to={RUTAS.registro} variant="secondary">
           Crear cuenta
         </ButtonLink>
       </>
