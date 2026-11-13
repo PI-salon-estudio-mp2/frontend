@@ -11,7 +11,7 @@ import { PantallaCarga } from '../components/ui/PantallaCarga';
 import { TextField } from '../components/ui/TextField';
 import { useAuth } from '../features/auth/AuthContext';
 import { parsePerfil } from '../features/auth/contrato';
-import { AYUDA_USERNAME, normalizarUsername, validarUsername } from '../features/auth/validaciones';
+import { AYUDA_USERNAME, normalizarUsername, validarUsername, notaUsername } from '../features/auth/validaciones';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { apiRequest, toApiError } from '../lib/api';
 import { RUTAS } from '../routes/rutas';
@@ -123,6 +123,7 @@ export function ElegirUsername() {
             spellCheck={false}
             obligatorio
             value={username}
+            nota={notaUsername(username)}
             error={errorCampo}
             onChange={(e) => {
               setUsername(e.target.value);

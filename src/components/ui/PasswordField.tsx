@@ -11,12 +11,12 @@ export function PasswordField(props: Omit<TextFieldProps, 'type' | 'adornment'>)
       adornment={
         <button
           type="button"
-          aria-pressed={visible}
           aria-controls={props.id}
           onClick={() => setVisible((v) => !v)}
           className="inline-flex min-h-10 items-center rounded-lg px-3 font-bold text-primary-700 hover:bg-primary-50"
         >
-          Mostrar<span className="sr-only"> contraseña</span>
+          {visible ? 'Ocultar' : 'Mostrar'}
+          <span className="sr-only"> contraseña</span>
         </button>
       }
     />

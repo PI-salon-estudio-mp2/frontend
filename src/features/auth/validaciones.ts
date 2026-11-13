@@ -38,3 +38,10 @@ export function validarContrasena(valor: string): string | undefined {
   }
   return undefined;
 }
+
+/** Aviso cuando lo escrito cambia al normalizarlo (mayúsculas o espacios en los bordes). */
+export function notaUsername(valor: string): string | undefined {
+  const normalizado = normalizarUsername(valor);
+  if (!normalizado || normalizado === valor || validarUsername(valor)) return undefined;
+  return `Se guardará como @${normalizado}`;
+}
