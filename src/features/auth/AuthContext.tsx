@@ -35,6 +35,8 @@ interface AuthContextValue {
   recargarPerfil: () => Promise<void>;
   obtenerToken: () => Promise<string>;
   actualizarPerfil: (datos: DatosPerfil) => Promise<Perfil>;
+  eliminarCuenta: () => Promise<void>;
+  avisoEliminacion: boolean;
   avisoCierre: boolean;
   descartarAvisoCierre: () => void;
 }
@@ -48,6 +50,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [estado, setEstado] = useState<EstadoSesion>({ status: 'cargando' });
   // Evita que una respuesta lenta pise a una más reciente (por ejemplo, al cerrar sesión).
   const version = useRef(0);
+  const [avisoEliminacion, setAvisoEliminacion] = useState(false);
+  const eliminacionEnCurso = useRef(false);
   const [avisoCierre, setAvisoCierre] = useState(false);
 
   const cargarPerfil = useCallback(async (user: User) => {
@@ -79,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       setAvisoCierre(false);
+      setAvisoEliminacion(false);
       void cargarPerfil(user);
     });
   }, [cargarPerfil]);
@@ -136,9 +141,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return perfil;
   }, []);
 
+  const eliminarCuenta = useCallback(async () => {
+    if (eliminacionEnCurso.current) return;
+    const user = auth.currentUser;
+    if (!user) throw new ApiError('http', 'Inicia sesión de nuevo para eliminar tu cuenta.', 401);
+    eliminacionEnCurso.current = true;
+    try {
+      const token = await user.getIdToken();
+      await apiRequest('/api/users/me', {
+        method: 'DELETE', token,
+        parse: (json) => {
+          if (json !== undefined) throw new ApiError('format', 'No pudimos confirmar la eliminación.');
+        },
+      });
+      // El servidor ya confirmó el borrado de Auth y Firestore. No ejecutar
+      // deleteUser en el navegador: produciría una segunda operación parcial.
+      if (auth.currentUser?.uid !== user.uid) return;
+      version.current++;
+      setAvisoCierre(false);
+      setAvisoEliminacion(true);
+      setEstado({ status: 'anonimo' });
+      // Un fallo de limpieza local no puede convertir un borrado confirmado en error.
+      try { await signOut(auth); } catch { /* La cuenta ya fue eliminada por la API. */ }
+    } finally {
+      eliminacionEnCurso.current = false;
+    }
+  }, []);
+
   const value = useMemo(
     () => ({
       estado,
+      eliminarCuenta,
+      avisoEliminacion,
       avisoCierre,
       descartarAvisoCierre,
       iniciarSesion,
@@ -148,7 +182,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       obtenerToken,
       actualizarPerfil,
     }),
-    [estado, avisoCierre, descartarAvisoCierre, iniciarSesion, continuarConGoogle, cerrarSesion, recargarPerfil, obtenerToken, actualizarPerfil],
+    [estado, eliminarCuenta, avisoEliminacion, avisoCierre, descartarAvisoCierre, iniciarSesion, continuarConGoogle, cerrarSesion, recargarPerfil, obtenerToken, actualizarPerfil],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
