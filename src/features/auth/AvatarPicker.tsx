@@ -7,15 +7,16 @@ interface AvatarPickerProps {
   value: string;
   onChange: (id: string) => void;
   error?: string;
+  obligatorio?: boolean;
 }
 
-export function AvatarPicker({ id, value, onChange, error }: AvatarPickerProps) {
+export function AvatarPicker({ id, value, onChange, error, obligatorio = true }: AvatarPickerProps) {
   const errorId = `${id}-error`;
 
   return (
     <fieldset aria-describedby={error ? errorId : undefined}>
       <legend className="mb-2 font-bold text-ink">
-        Elige tu avatar<span className="font-normal text-muted"> (obligatorio)</span>
+        Elige tu avatar{obligatorio && <span className="font-normal text-muted"> (obligatorio)</span>}
       </legend>
       <div className="flex flex-wrap gap-4">
         {AVATARES.map((a, i) => (
@@ -26,6 +27,7 @@ export function AvatarPicker({ id, value, onChange, error }: AvatarPickerProps) 
               id={i === 0 ? id : `${id}-${a.id}`}
               value={a.id}
               checked={value === a.id}
+              aria-invalid={error ? true : undefined}
               onChange={() => onChange(a.id)}
               className="sr-only"
             />

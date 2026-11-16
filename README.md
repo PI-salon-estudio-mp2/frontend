@@ -244,6 +244,15 @@ GET {VITE_API_URL}/api/base-tecnica
 | `GET /api/users/me` | Bearer | Perfil de la sesión actual | 200 `{ data: perfil }` · 404 (falta username) · 401 (sesión inválida: se cierra la sesión) |
 | `POST /api/users/me/username` | Bearer | Completar el perfil de Google | 201 · 400 · 409 `USERNAME_TAKEN` |
 
+### Mi perfil (US-04 · frontend)
+
+La edición de nombres, apellidos, username, correo y avatar está implementada, con
+cancelación, errores por campo y confirmación «Perfil actualizado». Requiere el nuevo
+`PATCH /api/users/me`, aún pendiente en el backend local de Sprint 1.
+Consulta el [contrato propuesto y los escenarios de prueba](docs/perfil-api.md).
+La API simulada lo admite; `MOCK_GUARDADO=error` permite probar el fallo al guardar y
+`MOCK_DELAY` controla la demora de escritura. Ejecuta `npm run test` para las pruebas.
+
 Formato de error de toda la API: `{ "error": { "code": "...", "message": "...", "fields": { "campo": "mensaje" } } }`
 (`fields` solo en errores de validación).
 
@@ -267,7 +276,7 @@ Los estados se anuncian al lector de pantalla con regiones vivas (`role="status"
 | `/registro`           | Crear cuenta                 | Pública  | US-01 y US-02 · listo               |
 | `/registro/username`  | Elegir username (Google)     | Pública* | US-02 · listo                       |
 | `/dashboard`          | Mis salas (panel)            | Privada  | Panel mínimo (US-06 en el Sprint 2) |
-| `/perfil`             | Mi perfil                    | Privada  | US-04, US-05 · Sprint 2             |
+| `/perfil`             | Mi perfil                    | Privada  | US-04 · frontend listo, API pendiente; US-05 pendiente |
 | `/salas/nueva`        | Crear sala                   | Privada  | US-06 · Sprint 2                    |
 | `/salas/unirse`       | Unirse a una sala            | Privada  | US-08 · Sprint 3                    |
 | `/salas/:id`          | Sala de estudio              | Privada  | US-09 a US-14 · Sprints 3 a 5       |

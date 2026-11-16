@@ -14,6 +14,7 @@ const PORT = Number(process.env.PORT ?? 3000);
 const MODE = process.env.MOCK_MODE ?? 'ok';
 const DELAY = Number(process.env.MOCK_DELAY ?? 600);
 const PERFIL = process.env.MOCK_PERFIL ?? 'auto';
+const GUARDADO = process.env.MOCK_GUARDADO ?? 'ok';
 
 const USERNAME_REGEX = /^[a-z0-9_]{3,20}$/;
 const RESERVADOS = ['admin', 'ocupado'];
@@ -72,9 +73,12 @@ const usernameDesdeCorreo = (correo) =>
 const usernameOcupado = (username, uid) =>
   RESERVADOS.includes(username) || [...perfiles.values()].some((p) => p.username === username && p.uid !== uid);
 
-createServer(async (req, res) => {
+const correoOcupado = (correo, uid) => correo === 'existente@correo.com'
+  || [...perfiles.values()].some((p) => p.correo.toLowerCase() === correo && p.uid !== uid);
+
+const server = createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.writeHead(204).end();
 
@@ -130,6 +134,49 @@ createServer(async (req, res) => {
     return json(res, 201, { data: perfil });
   }
 
+  // Contrato propuesto para US-04. Persiste solo en memoria; no escribe en Firestore.
+  if (path === '/api/users/me' && req.method === 'PATCH') {
+    const usuario = leerUsuario(req);
+    if (!usuario) return error(res, 401, 'UNAUTHORIZED', 'Falta iniciar sesión');
+    const cuerpo = await leerCuerpo(req);
+    await new Promise((resolve) => setTimeout(resolve, DELAY));
+    if (GUARDADO === 'error') return error(res, 503, 'DB_UNAVAILABLE', 'No se pudo guardar el perfil');
+    const anterior = perfiles.get(usuario.uid);
+    if (!anterior) return error(res, 404, 'PROFILE_INCOMPLETE', 'No existe el perfil');
+    if (!cuerpo || typeof cuerpo !== 'object' || Array.isArray(cuerpo)) {
+      return error(res, 400, 'VALIDATION_ERROR', 'El cuerpo debe ser un objeto');
+    }
+    const siguiente = { ...anterior };
+    const fields = {};
+    for (const campo of ['nombres', 'apellidos', 'username', 'correo', 'avatar']) {
+      if (!(campo in cuerpo)) continue;
+      if (typeof cuerpo[campo] !== 'string') fields[campo] = 'Este campo debe ser texto.';
+      else siguiente[campo] = cuerpo[campo].trim();
+    }
+    siguiente.username = siguiente.username.toLowerCase();
+    siguiente.correo = siguiente.correo.toLowerCase();
+    for (const campo of ['nombres', 'apellidos']) {
+      if (!siguiente[campo] || siguiente[campo].length > 60) fields[campo] = 'Escribe entre 1 y 60 caracteres.';
+    }
+    if (!USERNAME_REGEX.test(siguiente.username)) fields.username = 'Usa entre 3 y 20 caracteres: letras minúsculas, números o guion bajo (_).';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(siguiente.correo)) fields.correo = 'Escribe un correo válido.';
+    if (!['', 'azul', 'verde', 'ocre', 'morado', 'turquesa', 'rosado'].includes(siguiente.avatar)
+      && siguiente.avatar !== anterior.avatar) fields.avatar = 'Elige uno de los avatares disponibles.';
+    if (Object.keys(fields).length) return error(res, 400, 'VALIDATION_ERROR', 'Datos inválidos', fields);
+    if (siguiente.username !== anterior.username && usernameOcupado(siguiente.username, usuario.uid)) {
+      return error(res, 409, 'USERNAME_TAKEN', 'Ese nombre de usuario ya está ocupado.', {
+        username: 'Ese nombre de usuario ya está ocupado. Prueba con otro.',
+      });
+    }
+    if (siguiente.correo !== anterior.correo.toLowerCase() && correoOcupado(siguiente.correo, usuario.uid)) {
+      return error(res, 409, 'EMAIL_TAKEN', 'Ese correo ya está en uso.', {
+        correo: 'Ese correo ya está en uso. Prueba con otro.',
+      });
+    }
+    perfiles.set(usuario.uid, siguiente);
+    return json(res, 200, { data: siguiente });
+  }
+
   if (path === '/api/auth/registro' && req.method === 'POST') {
     const c = (await leerCuerpo(req)) ?? {};
     const username = String(c.username ?? '').trim().toLowerCase();
@@ -148,6 +195,8 @@ createServer(async (req, res) => {
   }
 
   error(res, 404, 'ROUTE_NOT_FOUND', `La ruta ${req.method} ${req.url} no existe`);
-}).listen(PORT, () => {
-  console.log(`API simulada en http://localhost:${PORT} (base técnica: ${MODE}, perfiles: ${PERFIL})`);
+});
+
+server.listen(PORT, () => {
+  console.log(`API simulada en http://localhost:${server.address().port} (base técnica: ${MODE}, perfiles: ${PERFIL})`);
 });

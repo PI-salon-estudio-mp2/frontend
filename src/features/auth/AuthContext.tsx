@@ -16,9 +16,9 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { apiRequest, toApiError, type ApiError } from '../../lib/api';
+import { apiRequest, toApiError, ApiError } from '../../lib/api';
 import { auth } from '../../lib/firebase';
-import { parsePerfil, type Perfil } from './contrato';
+import { parsePerfil, parsePerfilActualizado, type DatosPerfil, type Perfil } from './contrato';
 
 export type EstadoSesion =
   | { status: 'cargando' }
@@ -34,6 +34,7 @@ interface AuthContextValue {
   cerrarSesion: () => Promise<void>;
   recargarPerfil: () => Promise<void>;
   obtenerToken: () => Promise<string>;
+  actualizarPerfil: (datos: DatosPerfil) => Promise<Perfil>;
   avisoCierre: boolean;
   descartarAvisoCierre: () => void;
 }
@@ -112,6 +113,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return user.getIdToken();
   }, []);
 
+  const actualizarPerfil = useCallback(async (datos: DatosPerfil) => {
+    const user = auth.currentUser;
+    if (!user) throw new ApiError('http', 'Inicia sesión de nuevo para guardar tu perfil.', 401);
+    const mia = version.current;
+    const token = await user.getIdToken();
+    const perfil = await apiRequest('/api/users/me', {
+      method: 'PATCH',
+      token,
+      body: datos,
+      parse: parsePerfilActualizado,
+    });
+    if (perfil.uid !== user.uid) {
+      throw new ApiError('format', 'No pudimos confirmar el perfil actualizado. Recarga la página para comprobar tus datos.');
+    }
+    // Sin desmontar el formulario ni recuperar una sesión que ya se cerró o cambió.
+    if (mia === version.current && auth.currentUser?.uid === user.uid) {
+      setEstado((anterior) => anterior.status === 'autenticado' && anterior.user.uid === user.uid
+        ? { ...anterior, perfil }
+        : anterior);
+    }
+    return perfil;
+  }, []);
+
   const value = useMemo(
     () => ({
       estado,
@@ -122,8 +146,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       cerrarSesion,
       recargarPerfil,
       obtenerToken,
+      actualizarPerfil,
     }),
-    [estado, avisoCierre, descartarAvisoCierre, iniciarSesion, continuarConGoogle, cerrarSesion, recargarPerfil, obtenerToken],
+    [estado, avisoCierre, descartarAvisoCierre, iniciarSesion, continuarConGoogle, cerrarSesion, recargarPerfil, obtenerToken, actualizarPerfil],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

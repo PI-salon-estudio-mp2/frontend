@@ -13,7 +13,7 @@ export function RequireAuth() {
 
   switch (estado.status) {
     case 'cargando':
-      return <PantallaCarga texto="Verificando tu sesión…" />;
+      return <PantallaCarga texto={location.pathname === RUTAS.perfil ? 'Cargando perfil…' : 'Verificando tu sesión…'} />;
     case 'anonimo':
       return (
         <Navigate
