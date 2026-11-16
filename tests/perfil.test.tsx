@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { AuthProvider, useAuth } from '../src/features/auth/AuthContext';
 import { RequireAuth } from '../src/features/auth/RequireAuth';
+import { IniciarSesion } from '../src/pages/IniciarSesion';
+import { signOut } from 'firebase/auth';
 import { Perfil } from '../src/pages/Perfil';
 import type { Perfil as PerfilDatos } from '../src/features/auth/contrato';
 
@@ -42,7 +44,7 @@ function montar() {
         <PerfilSesion />
         <Routes>
           <Route element={<RequireAuth />}><Route path="/perfil" element={<Perfil />} /></Route>
-          <Route path="/ingresar" element={<p>Iniciar sesión</p>} />
+          <Route path="/ingresar" element={<IniciarSesion />} />
         </Routes>
       </AuthProvider>
     </MemoryRouter>,
@@ -234,9 +236,77 @@ describe('Mi perfil', () => {
     cambiar('Nombres', 'Mariana'); enviar();
     await waitFor(() => expect(guardar).toHaveBeenCalledTimes(1));
     act(() => { firebase.auth.currentUser = null; firebase.listener(null); });
-    await screen.findByText('Iniciar sesión');
+    await screen.findByRole('heading', { name: 'Iniciar sesión' });
     await act(async () => resolver(respuesta({ data: { ...original, nombres: 'Mariana' } })));
     expect(screen.getByLabelText('Perfil de la sesión').textContent).toBe('anonimo');
     expect(screen.queryByRole('heading', { name: 'Mi perfil' })).toBeNull();
+  });
+});
+
+// JSDOM no implementa la API de dialog; el navegador gestiona la modalidad
+// y el confinamiento nativo del foco. Simulamos apertura/cierre y evento cancel.
+beforeEach(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+    this.querySelector<HTMLButtonElement>('button')?.focus();
+  };
+  HTMLDialogElement.prototype.close = function () { this.removeAttribute('open'); };
+  vi.mocked(signOut).mockReset();
+});
+
+async function abrirEliminacion() {
+  montar();
+  await screen.findByRole('heading', { name: 'Mi perfil' });
+  const boton = screen.getByRole('button', { name: 'Eliminar cuenta' });
+  await userEvent.click(boton);
+  return { boton, dialogo: screen.getByRole('dialog') };
+}
+
+describe('US-05 eliminación de cuenta', () => {
+  it.each(['cancelar', 'escape'])('cierra con %s, devuelve el foco y no escribe', async (modo) => {
+    const { boton, dialogo } = await abrirEliminacion();
+    expect(document.activeElement?.textContent).toBe('Cancelar');
+    if (modo === 'escape') fireEvent(dialogo, new Event('cancel', { cancelable: true }));
+    else await userEvent.click(dialogo.querySelector('button')!);
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(document.activeElement).toBe(boton);
+    expect(vi.mocked(fetch).mock.calls.every(([, options]) => options?.method === 'GET')).toBe(true);
+    expect(signOut).not.toHaveBeenCalled();
+  });
+
+  it('envía DELETE autenticado una sola vez, bloquea cancelar y redirige con confirmación', async () => {
+    const { dialogo } = await abrirEliminacion();
+    let resolver!: (value: Response) => void;
+    vi.mocked(fetch).mockImplementationOnce(() => new Promise<Response>((resolve) => { resolver = resolve; }));
+    const confirmar = screen.getByRole('button', { name: 'Eliminar definitivamente' });
+    await userEvent.dblClick(confirmar);
+    await screen.findByText('Eliminando cuenta…');
+    fireEvent(dialogo, new Event('cancel', { cancelable: true }));
+    await userEvent.click(dialogo.querySelector('button')!);
+    expect(dialogo.hasAttribute('open')).toBe(true);
+    expect(vi.mocked(fetch).mock.calls.filter(([, opts]) => opts?.method === 'DELETE')).toHaveLength(1);
+    expect(fetch).toHaveBeenLastCalledWith('http://api.test/api/users/me', expect.objectContaining({
+      method: 'DELETE', headers: expect.objectContaining({ Authorization: 'Bearer token-de-prueba' }),
+    }));
+    await act(async () => resolver(new Response(null, { status: 204 })));
+    await screen.findByText('Tu cuenta se eliminó definitivamente.');
+    expect(screen.getByRole('heading', { name: 'Iniciar sesión' })).toBeTruthy();
+    expect(signOut).toHaveBeenCalledTimes(1);
+    expect(screen.getByLabelText('Perfil de la sesión').textContent).toBe('anonimo');
+  });
+
+  it.each(['servidor', 'red', 'formato'])('conserva la sesión ante error de %s y permite reintentar', async (tipo) => {
+    await abrirEliminacion();
+    if (tipo === 'red') vi.mocked(fetch).mockRejectedValueOnce(new TypeError('offline'));
+    else vi.mocked(fetch).mockResolvedValueOnce(tipo === 'servidor'
+      ? respuesta({ error: { code: 'DB_UNAVAILABLE' } }, 503)
+      : respuesta({ data: { deleted: false } }));
+    await userEvent.click(screen.getByRole('button', { name: 'Eliminar definitivamente' }));
+    await screen.findByText(tipo === 'servidor' ? /No se pudo eliminar la cuenta/ : /No pudimos confirmar la eliminación/);
+    expect(signOut).not.toHaveBeenCalled();
+    expect(JSON.parse(screen.getByLabelText('Perfil de la sesión').textContent!)).toEqual(original);
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 204 }));
+    await userEvent.click(screen.getByRole('button', { name: 'Eliminar definitivamente' }));
+    await screen.findByText('Tu cuenta se eliminó definitivamente.');
   });
 });

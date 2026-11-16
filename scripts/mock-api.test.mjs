@@ -10,7 +10,7 @@ const luis = token('luis', 'luis@correo.com');
 
 before(async () => {
   server = spawn(process.execPath, ['scripts/mock-api.mjs'], {
-    env: { ...process.env, PORT: '0', MOCK_DELAY: '0', MOCK_PERFIL: 'auto', MOCK_GUARDADO: 'ok' },
+    env: { ...process.env, PORT: '0', MOCK_DELAY: '0', MOCK_PERFIL: 'auto', MOCK_GUARDADO: 'ok', MOCK_ELIMINACION: 'ok' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   base = await new Promise((resolve, reject) => {
@@ -70,4 +70,23 @@ test('contrato de edición: autorización, persistencia y conflictos sin escritu
   const preflight = await fetch(`${base}/api/users/me`, { method: 'OPTIONS' });
   assert.equal(preflight.status, 204);
   assert.match(preflight.headers.get('Access-Control-Allow-Methods'), /PATCH/);
+});
+
+test('eliminación: exige token, libera username, es idempotente y no recrea el perfil', async () => {
+  const propio = token('eliminar', 'eliminar@correo.com');
+  const otro = token('conservar', 'conservar@correo.com');
+  const inicial = (await request(propio)).body.data;
+  const conservado = (await request(otro)).body.data;
+  const borrar = (valor) => fetch(`${base}/api/users/me`, {
+    method: 'DELETE', headers: valor ? { Authorization: `Bearer ${valor}` } : {},
+  });
+  assert.equal((await borrar()).status, 401);
+  assert.deepEqual((await request(propio)).body.data, inicial);
+  assert.equal((await borrar(propio)).status, 204);
+  assert.equal((await borrar(propio)).status, 204);
+  assert.equal((await request(propio)).status, 401);
+  assert.deepEqual((await request(otro)).body.data, conservado);
+  assert.equal((await request(otro, { username: inicial.username })).status, 200);
+  const preflight = await fetch(`${base}/api/users/me`, { method: 'OPTIONS' });
+  assert.match(preflight.headers.get('Access-Control-Allow-Methods'), /DELETE/);
 });
