@@ -256,6 +256,14 @@ La API simulada lo admite; `MOCK_GUARDADO=error` permite probar el fallo al guar
 Formato de error de toda la API: `{ "error": { "code": "...", "message": "...", "fields": { "campo": "mensaje" } } }`
 (`fields` solo en errores de validación).
 
+### Eliminar cuenta (US-05 · frontend)
+
+El perfil incluye una advertencia crítica, cancelación con Esc y retorno del foco,
+estado de carga, errores y redirección al login con confirmación. Consume
+`DELETE /api/users/me`, pendiente en el backend. La política acordada elimina
+las salas y mensajes del usuario. Consulta el [contrato y sus garantías pendientes](docs/eliminar-cuenta-api.md).
+El mock admite `MOCK_ELIMINACION=error` para probar errores sin modificar datos.
+
 ## Estados de las pantallas
 
 | Estado    | Qué ve el usuario                                                                                      |
@@ -276,7 +284,7 @@ Los estados se anuncian al lector de pantalla con regiones vivas (`role="status"
 | `/registro`           | Crear cuenta                 | Pública  | US-01 y US-02 · listo               |
 | `/registro/username`  | Elegir username (Google)     | Pública* | US-02 · listo                       |
 | `/dashboard`          | Mis salas (panel)            | Privada  | Panel mínimo (US-06 en el Sprint 2) |
-| `/perfil`             | Mi perfil                    | Privada  | US-04 · frontend listo, API pendiente; US-05 pendiente |
+| `/perfil`             | Mi perfil                    | Privada  | US-04 y US-05 · frontend listo, API pendiente |
 | `/salas/nueva`        | Crear sala                   | Privada  | US-06 · Sprint 2                    |
 | `/salas/unirse`       | Unirse a una sala            | Privada  | US-08 · Sprint 3                    |
 | `/salas/:id`          | Sala de estudio              | Privada  | US-09 a US-14 · Sprints 3 a 5       |

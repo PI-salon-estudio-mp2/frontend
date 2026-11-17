@@ -28,6 +28,7 @@ export function IniciarSesion() {
   const {
     estado,
     avisoCierre,
+    avisoEliminacion,
     descartarAvisoCierre,
     iniciarSesion,
     continuarConGoogle,
@@ -128,8 +129,10 @@ export function IniciarSesion() {
           </div>
         )}
 
-        <div role="status" className={avisoCierre || destino ? 'mb-6' : undefined}>
-          {avisoCierre ? (
+        <div role="status" className={avisoEliminacion || avisoCierre || destino ? 'mb-6' : undefined}>
+          {avisoEliminacion ? (
+            <Alert tone="success" title="Tu cuenta se eliminó definitivamente." />
+          ) : avisoCierre ? (
             <Alert tone="success" title="Cerraste tu sesión." />
           ) : (
             destino && (

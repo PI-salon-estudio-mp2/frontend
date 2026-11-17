@@ -1,4 +1,5 @@
 import { useRef, useState, type FormEvent } from 'react';
+import { EliminarCuenta } from '../features/auth/EliminarCuenta';
 import { Alert } from '../components/ui/Alert';
 import { AvisoFormulario } from '../components/ui/AvisoFormulario';
 import { Button } from '../components/ui/Button';
@@ -168,6 +169,7 @@ function FormularioPerfil({ perfil }: { perfil: PerfilGuardado }) {
           </div>
         </form>
       </Card>
+      <EliminarCuenta disabled={guardando} />
     </div>
   );
 }

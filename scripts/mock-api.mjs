@@ -14,6 +14,8 @@ const PORT = Number(process.env.PORT ?? 3000);
 const MODE = process.env.MOCK_MODE ?? 'ok';
 const DELAY = Number(process.env.MOCK_DELAY ?? 600);
 const PERFIL = process.env.MOCK_PERFIL ?? 'auto';
+const ELIMINACION = process.env.MOCK_ELIMINACION ?? 'ok';
+const eliminados = new Set();
 const GUARDADO = process.env.MOCK_GUARDADO ?? 'ok';
 
 const USERNAME_REGEX = /^[a-z0-9_]{3,20}$/;
@@ -78,7 +80,7 @@ const correoOcupado = (correo, uid) => correo === 'existente@correo.com'
 
 const server = createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.writeHead(204).end();
 
@@ -99,6 +101,22 @@ const server = createServer(async (req, res) => {
   if (path === '/api/users/username-disponible' && req.method === 'GET') {
     const username = (url.searchParams.get('username') ?? '').trim().toLowerCase();
     return json(res, 200, { data: { disponible: USERNAME_REGEX.test(username) && !usernameOcupado(username, '') } });
+  }
+
+  // Solo simula perfiles: no modifica Firebase ni modela salas/mensajes.
+  if (path === '/api/users/me' && req.method === 'DELETE') {
+    const usuario = leerUsuario(req);
+    if (!usuario) return error(res, 401, 'UNAUTHORIZED', 'Falta iniciar sesión');
+    await new Promise((resolve) => setTimeout(resolve, DELAY));
+    if (ELIMINACION === 'error') return error(res, 503, 'DB_UNAVAILABLE', 'No se pudo eliminar la cuenta');
+    perfiles.delete(usuario.uid);
+    eliminados.add(usuario.uid);
+    return res.writeHead(204).end();
+  }
+
+  if (path.startsWith('/api/users/me')) {
+    const usuario = leerUsuario(req);
+    if (usuario && eliminados.has(usuario.uid)) return error(res, 401, 'UNAUTHORIZED', 'Cuenta eliminada');
   }
 
   if (path === '/api/users/me' && req.method === 'GET') {
