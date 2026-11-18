@@ -31,15 +31,45 @@
   --color-line: #e3e6f0;
   --color-field-border: #8a90a8;
 
-  --color-success-50: #ecfdf3;
+  --color-success-50: #d5fbe4;
+  --color-success-border: #63bd86;
   --color-success-700: #1d7a46;
   --color-danger-50: #fef3f2;
+  --color-danger-border: #dd928a;
   --color-danger-600: #c4320a;
   --color-danger-700: #b42318;
   --color-warning-50: #fffaeb;
   --color-warning-700: #8a5a00;
 
   --radius-card: 1.25rem;
+}
+
+@layer utilities {
+  @media (prefers-reduced-motion: no-preference) {
+    .animar-aviso-exito {
+      animation:
+        mostrar-aviso-exito 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both,
+        ocultar-aviso-exito 200ms ease-in calc(var(--duracion-aviso) - 200ms) forwards;
+    }
+
+    @keyframes mostrar-aviso-exito {
+      from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.98);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes ocultar-aviso-exito {
+      to {
+        opacity: 0;
+        transform: translateY(6px) scale(0.99);
+      }
+    }
+  }
 }
 
 @layer base {
