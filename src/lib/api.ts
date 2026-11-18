@@ -34,6 +34,7 @@ const MENSAJES_POR_CODIGO: Record<string, string> = {
   INVALID_DATA: 'El dato guardado en la base de datos no tiene el formato correcto.',
   DB_UNAVAILABLE: 'El servidor no pudo conectarse con la base de datos. Inténtalo de nuevo en unos segundos.',
   INTERNAL_ERROR: 'El servidor tuvo un problema al procesar la solicitud.',
+  ROOM_CODE_UNAVAILABLE: 'No encontramos un código disponible. Inténtalo de nuevo.',
   USERNAME_TAKEN: 'Ese nombre de usuario ya está ocupado. Prueba con otro.',
   EMAIL_TAKEN: 'Ese correo ya tiene una cuenta. Inicia sesión o usa otro correo.',
   VALIDATION_ERROR: 'Revisa los datos del formulario e inténtalo de nuevo.',
