@@ -3,7 +3,7 @@
 Implementado en este repositorio: interfaz, cliente HTTP y simulación local.
 El backend local de Sprint 1 no implementa todavía `DELETE /api/users/me`.
 El borrado real en Firebase queda pendiente de implementar y desplegar en ese
-repositorio. El mock no elimina usuarios de Firebase ni modela salas o mensajes.
+repositorio. El mock elimina el perfil y las salas simuladas del anfitrión.
 
 ## Política confirmada por el equipo
 
@@ -16,8 +16,9 @@ Se eliminan las salas del usuario y sus mensajes. Para evitar datos huérfanos:
 - Conservar las salas ajenas y los mensajes de otras personas en ellas.
 - Eliminar la cuenta de Firebase Authentication.
 
-El esquema de salas y mensajes aún no existe en la copia local del backend;
-se deben concretar las colecciones y referencias antes de implementar la cascada.
+Las salas de US-06 y las solicitudes de creación se guardan en `rooms` y
+`roomCreationRequests`, con el campo `anfitrionUid` en ambas colecciones.
+La cascada real debe incluir estas colecciones y las referencias de mensajes que se definan.
 
 ## Contrato requerido
 

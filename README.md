@@ -105,6 +105,7 @@ npm run mock:api                       # http://localhost:3000
 | `MOCK_MODE` | `ok` (por defecto), `error`, `notfound` | Respuesta de `/api/base-tecnica` (503 o 404 para probar errores) |
 | `MOCK_DELAY` | milisegundos (por ejemplo `8000`) | Demora de `/api/base-tecnica` para ver «servidor activándose» |
 | `MOCK_PERFIL` | `auto` (por defecto), `nuevo`, `error` | `auto`: cualquier sesión válida ya tiene perfil · `nuevo`: `GET /api/users/me` responde 404 hasta elegir username · `error`: responde 503 |
+| `MOCK_SALAS` | `ok` (por defecto), `error` | `error` hace que `/api/rooms` responda 503. `MOCK_DELAY` también se aplica a las salas. |
 
 En PowerShell: `$env:MOCK_PERFIL="nuevo"; npm run mock:api`.
 
@@ -264,6 +265,22 @@ estado de carga, errores y redirección al login con confirmación. Consume
 las salas y mensajes del usuario. Consulta el [contrato y sus garantías pendientes](docs/eliminar-cuenta-api.md).
 El mock admite `MOCK_ELIMINACION=error` para probar errores sin modificar datos.
 
+### Salas de estudio (US-06)
+
+Las rutas requieren el ID token de Firebase y devuelven los datos en `{ data: ... }`.
+
+| Endpoint | Respuesta |
+| --- | --- |
+| `GET /api/rooms` | 200 con las salas del anfitrión. La lista vacía es `[]`. |
+| `POST /api/rooms` | Recibe `{ nombre, solicitudId }`. Devuelve 201 al crear y 200 al repetir la misma solicitud. |
+| `GET /api/rooms/:id` | 200 con la sala del anfitrión o 404 `ROOM_NOT_FOUND`. |
+
+Cada sala devuelve `{ id, nombre, rol: "administrador" }`. Las salas nuevas usan un código como `ABC-12D`.
+Los IDs de salas existentes siguen siendo válidos. El nombre admite de 3 a 40 caracteres después
+de recortar espacios en los extremos. `solicitudId` es un UUID v4 que el formulario conserva si se reintenta
+crear con el mismo nombre. El backend debe desplegar estos endpoints para que se guarden en Firestore.
+La API simulada conserva las salas en memoria hasta que se reinicia el proceso.
+
 ## Estados de las pantallas
 
 | Estado    | Qué ve el usuario                                                                                      |
@@ -283,11 +300,11 @@ Los estados se anuncian al lector de pantalla con regiones vivas (`role="status"
 | `/ingresar`           | Iniciar sesión               | Pública  | US-03 · listo                       |
 | `/registro`           | Crear cuenta                 | Pública  | US-01 y US-02 · listo               |
 | `/registro/username`  | Elegir username (Google)     | Pública* | US-02 · listo                       |
-| `/dashboard`          | Mis salas (panel)            | Privada  | Panel mínimo (US-06 en el Sprint 2) |
+| `/dashboard`          | Mis salas (panel)            | Privada  | US-06 · lista y copia de ID        |
 | `/perfil`             | Mi perfil                    | Privada  | US-04 y US-05 · frontend listo, API pendiente |
-| `/salas/nueva`        | Crear sala                   | Privada  | US-06 · Sprint 2                    |
+| `/salas/nueva`        | Crear sala                   | Privada  | US-06 · creación                    |
 | `/salas/unirse`       | Unirse a una sala            | Privada  | US-08 · Sprint 3                    |
-| `/salas/:id`          | Sala de estudio              | Privada  | US-09 a US-14 · Sprints 3 a 5       |
+| `/salas/:id`          | Sala de estudio              | Privada  | US-06 · acceso de anfitrión         |
 | `/salas/:id/editar`   | Editar sala                  | Privada  | US-07 · Sprint 3                    |
 | `/accesibilidad`      | Declaración de accesibilidad | Pública  | US-15 · Sprint 6                    |
 | `*`                   | Página no encontrada (404)   | Pública  | —                                   |
