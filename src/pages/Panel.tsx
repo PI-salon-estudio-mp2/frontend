@@ -1,23 +1,38 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { Alert } from '../components/ui/Alert';
+import { Button, ButtonLink } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Icon } from '../components/ui/Icon';
 import { PageHeader } from '../components/ui/PageHeader';
+import { PantallaCarga } from '../components/ui/PantallaCarga';
 import { useAuth } from '../features/auth/AuthContext';
-import { usePageTitle } from '../hooks/usePageTitle';
 import { nombrePropio } from '../features/auth/nombres';
+import { AvisoExitoSala } from '../features/salas/AvisoExitoSala';
+import { listarSalas } from '../features/salas/api';
+import { TarjetaSala } from '../features/salas/TarjetaSala';
+import { useConsultaSalas } from '../features/salas/useConsultaSalas';
+import { usePageTitle } from '../hooks/usePageTitle';
+import { RUTAS } from '../routes/rutas';
 
 export function Panel() {
   usePageTitle('Mis salas');
   const { estado } = useAuth();
+  if (estado.status !== 'autenticado') return null;
+
+  const { user, perfil } = estado;
+  return <PanelSalas key={user.uid} saludo={nombrePropio(perfil.nombres) || perfil.username} />;
+}
+
+function PanelSalas({ saludo }: { saludo: string }) {
+  const { estado, reintentar } = useConsultaSalas(listarSalas);
   const location = useLocation();
   const navigate = useNavigate();
+  const [copia, setCopia] = useState<{ id: string | null; version: number }>({ id: null, version: 0 });
 
-  const saludo =
-    estado.status === 'autenticado'
-      ? `Hola, ${nombrePropio(estado.perfil.nombres) || estado.perfil.username}`
-      : undefined;
+  function notificarCopia(id: string | null) {
+    setCopia((anterior) => ({ id, version: anterior.version + 1 }));
+  }
 
   // La bienvenida solo aparece al llegar desde el registro y no se repite al recargar.
   const [mostrarBienvenida] = useState(
@@ -31,10 +46,18 @@ export function Panel() {
     }
   }, [mostrarBienvenida, navigate, location.pathname]);
 
+  const vacio = estado.status === 'exito' && estado.datos.length === 0;
+  const accionCrear = (
+    <ButtonLink to={RUTAS.crearSala}>
+      <Icon name="plus" />
+      Crear sala
+    </ButtonLink>
+  );
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
-      {saludo && <p className="mb-1 text-lg text-muted">{saludo}</p>}
-      <PageHeader title="Mis salas" description="Aquí verás las salas de estudio que crees." />
+      {saludo && <p className="mb-1 text-lg text-muted">Hola, {saludo}</p>}
+      <PageHeader title="Mis salas" actions={vacio ? undefined : accionCrear} />
 
       <div role="status" className={mostrarBienvenida ? 'mb-6' : undefined}>
         {mostrarBienvenida && (
@@ -43,16 +66,42 @@ export function Panel() {
           </Alert>
         )}
       </div>
+      <AvisoExitoSala
+        aviso={copia.id ? {
+          titulo: 'ID copiado',
+          mensaje: `Copiaste el código ${copia.id}. Compártelo con tu grupo para invitarlos.`,
+        } : undefined}
+        version={copia.version}
+      />
 
-      <Card className="flex flex-col items-center gap-4 py-12 text-center">
-        <span className="grid size-16 place-items-center rounded-2xl bg-primary-50 text-primary-700">
-          <Icon name="home" className="size-8" />
-        </span>
-        <h2 className="text-xl font-bold">Aún no tienes salas</h2>
-        <p className="max-w-md text-muted">
-          Cuando crees una sala, aparecerá aquí con su nombre y su código para invitar a tu grupo.
-        </p>
-      </Card>
+      {estado.status === 'cargando' && <PantallaCarga texto="Cargando salas…" />}
+      <div role="alert">
+        {estado.status === 'error' && (
+          <Alert
+            tone="danger"
+            title="No pudimos cargar tus salas"
+            actions={<Button onClick={reintentar}><Icon name="refresh" />Reintentar</Button>}
+          >
+            {estado.error.message}
+          </Alert>
+        )}
+      </div>
+      {estado.status === 'exito' && (vacio ? (
+        <Card className="flex flex-col items-center gap-4 py-12 text-center">
+          <span className="grid size-16 place-items-center rounded-2xl bg-primary-50 text-primary-700">
+            <Icon name="home" className="size-8" />
+          </span>
+          <h2 className="text-xl font-bold">Aún no tienes salas</h2>
+          <p className="max-w-md text-muted">Crea tu primera sala para organizar tu grupo de estudio.</p>
+          {accionCrear}
+        </Card>
+      ) : (
+        <ul role="list" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {estado.datos.map((sala) => (
+            <li key={sala.id}><TarjetaSala sala={sala} notificarCopia={notificarCopia} /></li>
+          ))}
+        </ul>
+      ))}
     </div>
   );
 }
