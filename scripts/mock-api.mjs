@@ -6,9 +6,11 @@
 //   Usuarios:      MOCK_PERFIL=auto   (por defecto) cualquier token válido ya tiene perfil
 //                  MOCK_PERFIL=nuevo  GET /api/users/me responde 404 hasta elegir username
 //                  MOCK_PERFIL=error  GET /api/users/me responde 503
+//   Salas:         MOCK_SALAS=error   /api/rooms responde 503
 //   Usernames «ocupados» para probar el conflicto: admin, ocupado
 // En Windows (PowerShell):  $env:MOCK_PERFIL="nuevo"; npm run mock:api
 import { createServer } from 'node:http';
+import { randomInt } from 'node:crypto';
 
 const PORT = Number(process.env.PORT ?? 3000);
 const MODE = process.env.MOCK_MODE ?? 'ok';
@@ -17,10 +19,23 @@ const PERFIL = process.env.MOCK_PERFIL ?? 'auto';
 const ELIMINACION = process.env.MOCK_ELIMINACION ?? 'ok';
 const eliminados = new Set();
 const GUARDADO = process.env.MOCK_GUARDADO ?? 'ok';
+const SALAS = process.env.MOCK_SALAS ?? 'ok';
 
 const USERNAME_REGEX = /^[a-z0-9_]{3,20}$/;
 const RESERVADOS = ['admin', 'ocupado'];
 const perfiles = new Map(); // uid -> perfil
+const salas = new Map(); // id -> sala
+const solicitudesSalas = new Map(); // clave -> id
+const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
+const MIN_NOMBRE_SALA = 3;
+const MAX_NOMBRE_SALA = 40;
+const salaPublica = ({ id, nombre }) => ({ id, nombre, rol: 'administrador' });
+
+function generarCodigoSala() {
+  const letra = () => String.fromCharCode(65 + randomInt(26));
+  const numero = String(randomInt(100)).padStart(2, '0');
+  return `${letra()}${letra()}${letra()}-${numero}${letra()}`;
+}
 
 const json = (res, status, body) => {
   res.writeHead(status, { 'Content-Type': 'application/json' });
@@ -103,7 +118,7 @@ const server = createServer(async (req, res) => {
     return json(res, 200, { data: { disponible: USERNAME_REGEX.test(username) && !usernameOcupado(username, '') } });
   }
 
-  // Solo simula perfiles: no modifica Firebase ni modela salas/mensajes.
+  // Elimina el perfil y las salas simuladas sin modificar Firebase.
   if (path === '/api/users/me' && req.method === 'DELETE') {
     const usuario = leerUsuario(req);
     if (!usuario) return error(res, 401, 'UNAUTHORIZED', 'Falta iniciar sesión');
@@ -111,7 +126,68 @@ const server = createServer(async (req, res) => {
     if (ELIMINACION === 'error') return error(res, 503, 'DB_UNAVAILABLE', 'No se pudo eliminar la cuenta');
     perfiles.delete(usuario.uid);
     eliminados.add(usuario.uid);
+    for (const [id, sala] of salas) {
+      if (sala.anfitrionUid === usuario.uid) {
+        salas.delete(id);
+        solicitudesSalas.delete(sala.claveSolicitud);
+      }
+    }
     return res.writeHead(204).end();
+  }
+
+  if (
+    (path === '/api/rooms' && ['GET', 'POST'].includes(req.method))
+    || (req.method === 'GET' && /^\/api\/rooms\/[^/]+$/.test(path))
+  ) {
+    const usuario = leerUsuario(req);
+    if (!usuario) return error(res, 401, 'UNAUTHORIZED', 'Falta iniciar sesión');
+    const cuerpo = req.method === 'POST' ? await leerCuerpo(req) : undefined;
+    await new Promise((resolve) => setTimeout(resolve, DELAY));
+    if (eliminados.has(usuario.uid)) return error(res, 401, 'UNAUTHORIZED', 'Cuenta eliminada');
+    if (SALAS === 'error') return error(res, 503, 'DB_UNAVAILABLE', 'No se pudo conectar con la base de datos');
+
+    if (req.method === 'POST') {
+      const nombre = typeof cuerpo?.nombre === 'string' ? cuerpo.nombre.trim() : '';
+      if (nombre.length < MIN_NOMBRE_SALA || nombre.length > MAX_NOMBRE_SALA) {
+        return error(res, 400, 'VALIDATION_ERROR', 'Revisa el nombre de la sala.', {
+          nombre: `Escribe un nombre de entre ${MIN_NOMBRE_SALA} y ${MAX_NOMBRE_SALA} caracteres.`,
+        });
+      }
+      if (typeof cuerpo?.solicitudId !== 'string' || !UUID.test(cuerpo.solicitudId)) {
+        return error(res, 400, 'VALIDATION_ERROR', 'La solicitud de creación no es válida.');
+      }
+      const claveSolicitud = JSON.stringify([usuario.uid, cuerpo.solicitudId]);
+      const anterior = salas.get(solicitudesSalas.get(claveSolicitud));
+      if (anterior) {
+        if (anterior.nombre !== nombre) {
+          return error(res, 409, 'ROOM_REQUEST_CONFLICT', 'No pudimos reutilizar la solicitud de creación.');
+        }
+        return json(res, 200, { data: salaPublica(anterior) });
+      }
+      for (let intento = 0; intento < 10; intento++) {
+        const id = generarCodigoSala();
+        if (salas.has(id)) continue;
+        const sala = { id, nombre, anfitrionUid: usuario.uid, claveSolicitud };
+        salas.set(id, sala);
+        solicitudesSalas.set(claveSolicitud, id);
+        return json(res, 201, { data: salaPublica(sala) });
+      }
+      return error(res, 503, 'ROOM_CODE_UNAVAILABLE', 'No encontramos un código disponible. Inténtalo de nuevo.');
+    }
+
+    if (path === '/api/rooms') {
+      const propias = [...salas.values()]
+        .filter((sala) => sala.anfitrionUid === usuario.uid)
+        .map(salaPublica)
+        .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es') || a.id.localeCompare(b.id));
+      return json(res, 200, { data: propias });
+    }
+
+    const sala = salas.get(path.slice('/api/rooms/'.length).toUpperCase());
+    if (sala?.anfitrionUid !== usuario.uid) {
+      return error(res, 404, 'ROOM_NOT_FOUND', 'La sala no existe o no está en tu panel.');
+    }
+    return json(res, 200, { data: salaPublica(sala) });
   }
 
   if (path.startsWith('/api/users/me')) {
