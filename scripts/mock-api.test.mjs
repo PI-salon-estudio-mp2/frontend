@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { after, before, test } from 'node:test';
 
 let server;
@@ -10,7 +11,7 @@ const luis = token('luis', 'luis@correo.com');
 
 before(async () => {
   server = spawn(process.execPath, ['scripts/mock-api.mjs'], {
-    env: { ...process.env, PORT: '0', MOCK_DELAY: '0', MOCK_PERFIL: 'auto', MOCK_GUARDADO: 'ok', MOCK_ELIMINACION: 'ok' },
+    env: { ...process.env, PORT: '0', MOCK_DELAY: '0', MOCK_PERFIL: 'auto', MOCK_GUARDADO: 'ok', MOCK_ELIMINACION: 'ok', MOCK_SALAS: 'ok' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   base = await new Promise((resolve, reject) => {
@@ -89,4 +90,62 @@ test('eliminación: exige token, libera username, es idempotente y no recrea el 
   assert.equal((await request(otro, { username: inicial.username })).status, 200);
   const preflight = await fetch(`${base}/api/users/me`, { method: 'OPTIONS' });
   assert.match(preflight.headers.get('Access-Control-Allow-Methods'), /DELETE/);
+});
+
+test('salas: valida el nombre, conserva un ID por solicitud y limita el acceso a su anfitrión', async () => {
+  const anfitrion = token('anfitrion', 'anfitrion@correo.com');
+  const otro = token('otro-anfitrion', 'otro-anfitrion@correo.com');
+  const consultar = async (usuario, ruta = '', datos) => {
+    const headers = new Headers();
+    if (usuario) headers.set('Authorization', `Bearer ${usuario}`);
+    if (datos) headers.set('Content-Type', 'application/json');
+    const res = await fetch(`${base}/api/rooms${ruta}`, {
+      method: datos ? 'POST' : 'GET',
+      headers,
+      body: datos ? JSON.stringify(datos) : undefined,
+    });
+    return { status: res.status, ...await res.json() };
+  };
+
+  const solicitudId = randomUUID();
+  assert.equal((await consultar(undefined)).status, 401);
+  assert.equal((await consultar(undefined, '', { nombre: 'Física', solicitudId })).status, 401);
+  for (const nombre of ['   ', ' AB ', 'a'.repeat(41)]) {
+    const invalida = await consultar(anfitrion, '', { nombre, solicitudId });
+    assert.equal(invalida.status, 400);
+    assert.ok(invalida.error.fields.nombre);
+  }
+  assert.deepEqual((await consultar(anfitrion)).data, []);
+
+  const datos = { nombre: ' Física ', solicitudId, anfitrionUid: 'otro-anfitrion' };
+  const simultaneas = await Promise.all([consultar(anfitrion, '', datos), consultar(anfitrion, '', datos)]);
+  assert.deepEqual(simultaneas.map(({ status }) => status).sort(), [200, 201]);
+  const sala = simultaneas[0].data;
+  assert.match(sala.id, /^[A-Z]{3}-[0-9]{2}[A-Z]$/);
+  assert.equal(sala.nombre, 'Física');
+  assert.equal(sala.rol, 'administrador');
+  assert.deepEqual(simultaneas[1].data, sala);
+  assert.equal((await consultar(anfitrion, '', { nombre: 'Química', solicitudId })).status, 409);
+  assert.deepEqual((await consultar(anfitrion)).data, [sala]);
+  assert.deepEqual((await consultar(anfitrion, `/${sala.id}`)).data, sala);
+  assert.deepEqual((await consultar(anfitrion, `/${sala.id.toLowerCase()}`)).data, sala);
+  assert.deepEqual((await consultar(otro)).data, []);
+  assert.equal((await consultar(otro, `/${sala.id}`)).status, 404);
+
+  const otra = await consultar(otro, '', datos);
+  assert.equal(otra.status, 201);
+  assert.match(otra.data.id, /^[A-Z]{3}-[0-9]{2}[A-Z]$/);
+  assert.notEqual(otra.data.id, sala.id);
+  const borrar = await fetch(`${base}/api/users/me`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${anfitrion}` },
+  });
+  assert.equal(borrar.status, 204);
+  assert.equal((await consultar(anfitrion)).status, 401);
+  assert.deepEqual((await consultar(otro)).data, [otra.data]);
+  for (const nombre of [' ABC ', 'a'.repeat(40)]) {
+    const valida = await consultar(otro, '', { nombre, solicitudId: randomUUID() });
+    assert.equal(valida.status, 201);
+    assert.equal(valida.data.nombre, nombre.trim());
+  }
 });
