@@ -219,8 +219,8 @@ const server = createServer(async (req, res) => {
       });
     }
     if (usernameOcupado(username, usuario.uid)) {
-      return error(res, 409, 'USERNAME_TAKEN', 'Ese nombre de usuario ya está ocupado.', {
-        username: 'Ese nombre de usuario ya está ocupado. Prueba con otro.',
+      return error(res, 409, 'USERNAME_TAKEN', 'Ese nombre de usuario ya está en uso.', {
+        username: 'Ese nombre de usuario ya está en uso. Prueba con otro.',
       });
     }
     const perfil = crearPerfil(usuario, username);
@@ -258,13 +258,13 @@ const server = createServer(async (req, res) => {
       && siguiente.avatar !== anterior.avatar) fields.avatar = 'Elige uno de los avatares disponibles.';
     if (Object.keys(fields).length) return error(res, 400, 'VALIDATION_ERROR', 'Datos inválidos', fields);
     if (siguiente.username !== anterior.username && usernameOcupado(siguiente.username, usuario.uid)) {
-      return error(res, 409, 'USERNAME_TAKEN', 'Ese nombre de usuario ya está ocupado.', {
-        username: 'Ese nombre de usuario ya está ocupado. Prueba con otro.',
+      return error(res, 409, 'USERNAME_TAKEN', 'Ese nombre de usuario ya está en uso.', {
+        username: 'Ese nombre de usuario ya está en uso. Prueba con otro.',
       });
     }
     if (siguiente.correo !== anterior.correo.toLowerCase() && correoOcupado(siguiente.correo, usuario.uid)) {
-      return error(res, 409, 'EMAIL_TAKEN', 'Ese correo ya está en uso.', {
-        correo: 'Ese correo ya está en uso. Prueba con otro.',
+      return error(res, 409, 'EMAIL_TAKEN', 'Ese correo ya tiene una cuenta.', {
+        correo: 'Ese correo ya tiene una cuenta. Usa otro correo.',
       });
     }
     perfiles.set(usuario.uid, siguiente);
@@ -283,7 +283,7 @@ const server = createServer(async (req, res) => {
       fields.username = 'Usa entre 3 y 20 caracteres: letras minúsculas, números o guion bajo (_).';
     }
     if (Object.keys(fields).length > 0) return error(res, 400, 'VALIDATION_ERROR', 'Datos inválidos', fields);
-    if (usernameOcupado(username, '')) return error(res, 409, 'USERNAME_TAKEN', 'Ese nombre de usuario ya está ocupado. Prueba con otro.');
+    if (usernameOcupado(username, '')) return error(res, 409, 'USERNAME_TAKEN', 'Ese nombre de usuario ya está en uso. Prueba con otro.');
     if (correo === 'existente@correo.com') return error(res, 409, 'EMAIL_TAKEN', 'Ese correo ya tiene una cuenta. Inicia sesión o usa otro correo.');
     return json(res, 201, { data: { uid: `mock-${Date.now()}` } });
   }

@@ -63,8 +63,8 @@ actualizar la sesión y la base de «Cancelar». Una respuesta incompleta o con 
 {
   "error": {
     "code": "EMAIL_TAKEN",
-    "message": "Ese correo ya está en uso. Prueba con otro.",
-    "fields": { "correo": "Ese correo ya está en uso. Prueba con otro." }
+    "message": "Ese correo ya tiene una cuenta. Usa otro correo.",
+    "fields": { "correo": "Ese correo ya tiene una cuenta. Usa otro correo." }
   }
 }
 ```

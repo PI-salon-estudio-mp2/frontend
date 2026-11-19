@@ -121,7 +121,7 @@ describe('Mi perfil', () => {
     enviar();
     await waitFor(() => expect(input(label).getAttribute('aria-invalid')).toBe('true'));
     expect(input(label).getAttribute('aria-describedby')).toContain(`${id}-error`);
-    expect(document.getElementById(`${id}-error`)?.textContent).toMatch(/ocupado|en uso/);
+    expect(document.getElementById(`${id}-error`)?.textContent).toMatch(/en uso|ya tiene una cuenta/);
     // El error se renderiza antes de que useEffect traslade el foco al resumen.
     await waitFor(() => {
       expect(document.activeElement?.getAttribute('aria-labelledby')).toBe('resumen-errores-titulo');
