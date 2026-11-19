@@ -104,7 +104,7 @@ it('mantiene la solicitud al reintentar y abre el interior como administrador al
   await screen.findByRole('heading', { name: sala.nombre });
   const confirmacion = within(screen.getByRole('status'));
   expect(confirmacion.getByText('Sala creada')).toBeTruthy();
-  expect(confirmacion.getByText('Comparte el ID para que tu grupo pueda entrar')).toBeTruthy();
+  expect(confirmacion.getByText('Comparte el ID para que tu grupo pueda entrar.')).toBeTruthy();
   expect(screen.getByText('Administrador')).toBeTruthy();
   expect(screen.getByText(sala.id)).toBeTruthy();
   expect(pedir.mock.calls[2][0]).toBe(`http://api.test/api/rooms/${sala.id}`);
@@ -128,7 +128,7 @@ it('copia el ID de la sala y confirma el resultado en una región de estado', as
   const alerta = within(within(tarjeta).getByRole('alert'));
   fireEvent.click(boton);
   const confirmacion = within((await screen.findByText('ID copiado')).closest<HTMLElement>('[role="status"]')!);
-  expect(confirmacion.getByText(`Copiaste el código ${sala.id}. Compártelo con tu grupo para invitarlos`)).toBeTruthy();
+  expect(confirmacion.getByText(`Copiaste el código ${sala.id}. Compártelo con tu grupo para invitarlos.`)).toBeTruthy();
   expect(escribir).toHaveBeenCalledWith(sala.id);
   fireEvent.click(boton);
   await alerta.findByText('No pudimos copiar el ID');
