@@ -278,7 +278,7 @@ describe('US-05 eliminación de cuenta', () => {
     const { dialogo } = await abrirEliminacion();
     let resolver!: (value: Response) => void;
     vi.mocked(fetch).mockImplementationOnce(() => new Promise<Response>((resolve) => { resolver = resolve; }));
-    const confirmar = screen.getByRole('button', { name: 'Eliminar definitivamente' });
+    const confirmar = screen.getByRole('button', { name: 'Sí, eliminar definitivamente' });
     await userEvent.dblClick(confirmar);
     await screen.findByText('Eliminando cuenta…');
     fireEvent(dialogo, new Event('cancel', { cancelable: true }));
@@ -301,12 +301,12 @@ describe('US-05 eliminación de cuenta', () => {
     else vi.mocked(fetch).mockResolvedValueOnce(tipo === 'servidor'
       ? respuesta({ error: { code: 'DB_UNAVAILABLE' } }, 503)
       : respuesta({ data: { deleted: false } }));
-    await userEvent.click(screen.getByRole('button', { name: 'Eliminar definitivamente' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Sí, eliminar definitivamente' }));
     await screen.findByText(tipo === 'servidor' ? /No se pudo eliminar la cuenta/ : /No pudimos confirmar la eliminación/);
     expect(signOut).not.toHaveBeenCalled();
     expect(JSON.parse(screen.getByLabelText('Perfil de la sesión').textContent!)).toEqual(original);
     vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 204 }));
-    await userEvent.click(screen.getByRole('button', { name: 'Eliminar definitivamente' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Sí, eliminar definitivamente' }));
     await screen.findByText('Tu cuenta se eliminó definitivamente.');
   });
 });
