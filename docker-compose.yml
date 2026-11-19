@@ -1,20 +1,23 @@
 # Levanta todo el sistema en local con un solo comando:
 #   docker compose up --build
 #
-#   Frontend      -> http://localhost:8080
-#   Backend API   -> http://localhost:3000   (Swagger: http://localhost:3000/docs)
+#   Frontend           -> http://localhost:8080
+#   Backend API        -> http://localhost:3000   (Swagger: http://localhost:3000/docs)
+#   Backend tiempo real-> http://localhost:4000   (Socket.IO; salud: http://localhost:4000/health)
 #
-# Frontend y backend están en repositorios distintos. Clónalos uno al lado del otro:
+# Los tres servicios están en repositorios distintos. Clónalos uno al lado del otro:
 #
 #   proyecto/
-#   ├── frontend/      (este repositorio, aquí está este archivo)
-#   └── backend-api/   (repositorio del BE Lead: PI-salon-estudio-mp2/backend-api)
+#   ├── frontend/          (este repositorio, aquí está este archivo)
+#   ├── backend-api/       (PI-salon-estudio-mp2/backend-api)
+#   └── backend-realtime/  (PI-salon-estudio-mp2/backend-realtime)
 #
 # y ejecuta el comando DESDE esta carpeta (frontend/).
-# Si el repositorio del backend tiene otro nombre, cambia BACKEND_DIR:
-#   BACKEND_DIR=../mi-backend docker compose up --build
+# Si algún repositorio tiene otro nombre o ruta, cambia BACKEND_DIR o REALTIME_DIR:
+#   BACKEND_DIR=../mi-backend REALTIME_DIR=../mi-realtime docker compose up --build
 #
-# Las credenciales viven en el .env del backend (NO se sube a GitHub; ver .env.example de cada servicio).
+# Las credenciales viven en el .env de cada backend (NO se suben a GitHub; ver .env.example de cada servicio).
+# Los dos backends usan la misma cuenta de servicio de Firebase.
 
 services:
   frontend:
@@ -24,6 +27,7 @@ services:
         # El navegador del usuario es quien llama a la API, por eso se usa
         # la dirección publicada en el equipo (localhost), no el nombre del servicio.
         VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+        VITE_REALTIME_URL: ${VITE_REALTIME_URL:-http://localhost:4000}
         VITE_API_DATO_PATH: ${VITE_API_DATO_PATH:-/api/base-tecnica}
         VITE_FIREBASE_API_KEY: ${VITE_FIREBASE_API_KEY:-}
         VITE_FIREBASE_AUTH_DOMAIN: ${VITE_FIREBASE_AUTH_DOMAIN:-}
@@ -33,6 +37,7 @@ services:
       - "8080:80"
     depends_on:
       - backend-api
+      - backend-realtime
     restart: unless-stopped
 
   backend-api:
@@ -49,15 +54,16 @@ services:
       - "3000:3000"
     restart: unless-stopped
 
-  # Se activa en el Sprint 2 (TS-02). Ajusta la ruta al repositorio o carpeta del servidor de tiempo real:
-  # backend-realtime:
-  #   build:
-  #     context: ../backend-realtime
-  #   env_file:
-  #     - ../backend-realtime/.env
-  #   environment:
-  #     PORT: 4000
-  #     CORS_ORIGINS: http://localhost:8080,http://localhost:5173
-  #   ports:
-  #     - "4000:4000"
-  #   restart: unless-stopped
+  # Servidor de tiempo real (Socket.IO, TS-02). Solo acepta conexiones con un ID token de Firebase.
+  backend-realtime:
+    build:
+      context: ${REALTIME_DIR:-../backend-realtime}
+    env_file:
+      - ${REALTIME_DIR:-../backend-realtime}/.env
+    environment:
+      PORT: 4000
+      # Orígenes permitidos por CORS: 8080 = frontend en Docker, 5173 = frontend con npm run dev.
+      CORS_ORIGINS: http://localhost:8080,http://localhost:5173
+    ports:
+      - "4000:4000"
+    restart: unless-stopped
