@@ -151,6 +151,7 @@ function FormularioPerfil({ perfil }: { perfil: PerfilGuardado }) {
               inputMode="email" autoCapitalize="none" spellCheck={false} obligatorio
               value={datos.correo} error={errores.correo} onChange={(e) => cambiar('correo', e.target.value)} />
             <AvatarPicker id="avatar" value={datos.avatar} error={errores.avatar} obligatorio={false}
+              inicial={datos.username.trim().charAt(0).toLocaleUpperCase('es')}
               onChange={(avatar) => cambiar('avatar', avatar)} />
             <div className="flex flex-wrap gap-3">
               <Button variant="ghost" onClick={() => cambiar('avatar', '')} disabled={!datos.avatar}>
@@ -170,10 +171,10 @@ function FormularioPerfil({ perfil }: { perfil: PerfilGuardado }) {
               </Button>
               <Button variant="secondary" onClick={cancelar} disabled={guardando}>Cancelar</Button>
             </div>
-          </div>
             {!guardando && !hayCambios && (
               <p id="guardar-ayuda" className="mt-3 text-sm text-muted">Cambia algún dato para poder guardar.</p>
             )}
+          </div>
         </form>
       </Card>
       <EliminarCuenta disabled={guardando} />

@@ -86,6 +86,10 @@ describe('Mi perfil', () => {
     const guardarBtn = screen.getByRole('button', { name: 'Guardar cambios' }) as HTMLButtonElement;
     expect(guardarBtn.disabled).toBe(true);
     expect(screen.getByText('Cambia algún dato para poder guardar.')).toBeTruthy();
+    // El selector de avatar muestra la inicial del usuario (igual que el encabezado), no un ícono.
+    const opciones = Array.from(document.querySelectorAll<HTMLInputElement>('input[name="avatar"]'));
+    expect(opciones.length).toBeGreaterThan(0);
+    expect(opciones.every((o) => o.closest('label')!.textContent!.startsWith('A'))).toBe(true);
     expect(guardarBtn.getAttribute('aria-describedby')).toBe('guardar-ayuda');
     cambiar('Nombres', 'Ana María');
     expect(guardarBtn.disabled).toBe(false);
