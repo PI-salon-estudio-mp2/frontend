@@ -58,7 +58,9 @@ it('carga las salas, permite reintentar un fallo y ofrece crear una sala cuando 
   expect(alerta.getByText(/Revisa tu conexión a internet/)).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
   await screen.findByRole('heading', { name: 'Aún no tienes salas' });
-  expect(screen.getByRole('link', { name: 'Crear sala' }).getAttribute('href')).toBe(RUTAS.crearSala);
+  const crearVacio = screen.getByRole('link', { name: 'Crear mi primera sala' });
+  expect(crearVacio.getAttribute('href')).toBe(RUTAS.crearSala);
+  expect(crearVacio.className).toContain('bg-primary-600'); // único botón: principal
   expect(pedir).toHaveBeenCalledTimes(2);
   expect(pedir).toHaveBeenLastCalledWith('http://api.test/api/rooms', expect.objectContaining({
     headers: expect.objectContaining({ Authorization: 'Bearer token-de-prueba' }),
@@ -112,7 +114,11 @@ it('mantiene la solicitud al reintentar y abre el interior como administrador al
   fireEvent.click(screen.getByRole('link', { name: 'Volver a Mis salas' }));
   await screen.findByRole('heading', { name: sala.nombre });
   expect(screen.getByText(sala.id)).toBeTruthy();
-  expect(screen.getByRole('link', { name: 'Entrar a Álgebra' }).getAttribute('href')).toBe(rutaSala(sala.id));
+  const entrar = screen.getByRole('link', { name: 'Entrar a Álgebra' });
+  expect(entrar.getAttribute('href')).toBe(rutaSala(sala.id));
+  // Con salas, «Entrar» es el único botón principal; «Crear sala» del encabezado es secundario.
+  expect(entrar.className).toContain('bg-primary-600');
+  expect(screen.getByRole('link', { name: 'Crear sala' }).className).not.toContain('bg-primary-600');
 });
 
 it('copia el ID de la sala y confirma el resultado en una región de estado', async () => {

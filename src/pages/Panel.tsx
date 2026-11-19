@@ -47,17 +47,19 @@ function PanelSalas({ saludo }: { saludo: string }) {
   }, [mostrarBienvenida, navigate, location.pathname]);
 
   const vacio = estado.status === 'exito' && estado.datos.length === 0;
-  const accionCrear = (
-    <ButtonLink to={RUTAS.crearSala}>
+  // Un solo botón principal por pantalla: con salas, «Entrar» (en cada tarjeta) es el principal
+  // y «Crear sala» del encabezado es secundario; sin salas, «Crear mi primera sala» es el único.
+  const accionCrear = (variant: 'primary' | 'secondary', texto: string) => (
+    <ButtonLink to={RUTAS.crearSala} variant={variant}>
       <Icon name="plus" />
-      Crear sala
+      {texto}
     </ButtonLink>
   );
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
       {saludo && <p className="mb-1 text-lg text-muted">Hola, {saludo}</p>}
-      <PageHeader title="Mis salas" actions={vacio ? undefined : accionCrear} />
+      <PageHeader title="Mis salas" actions={vacio ? undefined : accionCrear('secondary', 'Crear sala')} />
 
       <div role="status" className={mostrarBienvenida ? 'mb-6' : undefined}>
         {mostrarBienvenida && (
@@ -93,7 +95,7 @@ function PanelSalas({ saludo }: { saludo: string }) {
           </span>
           <h2 className="text-xl font-bold">Aún no tienes salas</h2>
           <p className="max-w-md text-muted">Crea tu primera sala para organizar tu grupo de estudio.</p>
-          {accionCrear}
+          {accionCrear('primary', 'Crear mi primera sala')}
         </Card>
       ) : (
         <ul role="list" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
