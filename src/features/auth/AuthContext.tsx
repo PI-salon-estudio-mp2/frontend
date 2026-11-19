@@ -31,7 +31,8 @@ interface AuthContextValue {
   estado: EstadoSesion;
   iniciarSesion: (correo: string, contrasena: string) => Promise<void>;
   continuarConGoogle: () => Promise<void>;
-  cerrarSesion: () => Promise<void>;
+  /** Con `conAviso: false` no se muestra «Cerraste tu sesión.» (p. ej. al cancelar un registro). */
+  cerrarSesion: (opciones?: { conAviso?: boolean }) => Promise<void>;
   recargarPerfil: () => Promise<void>;
   obtenerToken: () => Promise<string>;
   actualizarPerfil: (datos: DatosPerfil) => Promise<Perfil>;
@@ -96,8 +97,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signInWithPopup(auth, googleProvider);
   }, []);
 
-  const cerrarSesion = useCallback(async () => {
-    setAvisoCierre(true);
+  const cerrarSesion = useCallback(async ({ conAviso = true }: { conAviso?: boolean } = {}) => {
+    setAvisoCierre(conAviso);
     try {
       await signOut(auth);
     } catch (e) {

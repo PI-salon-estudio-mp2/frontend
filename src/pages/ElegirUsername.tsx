@@ -25,7 +25,11 @@ export function ElegirUsername() {
   const [errorGeneral, setErrorGeneral] = useState<string>();
   const [enviando, setEnviando] = useState(false);
   const [enfoque, setEnfoque] = useState(0);
+  const [cancelando, setCancelando] = useState(false);
+  const [cancelado, setCancelado] = useState(false);
 
+  // Tras cancelar, la persona vuelve al registro (no al inicio de sesión).
+  if (estado.status === 'anonimo' && cancelado) return <Navigate to={RUTAS.registro} replace />;
   if (estado.status === 'cargando' && !enviando) return <PantallaCarga texto="Verificando tu sesión…" />;
   if (estado.status === 'anonimo') return <Navigate to={RUTAS.ingresar} replace />;
     if (estado.status === 'autenticado') {
@@ -61,7 +65,7 @@ export function ElegirUsername() {
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (enviando) return;
+    if (enviando || cancelando) return;
     setErrorGeneral(undefined);
 
     const mensaje = validarUsername(username);
@@ -91,6 +95,21 @@ export function ElegirUsername() {
         setErrorGeneral(error.message);
       }
       setEnviando(false);
+    }
+  };
+
+  const cancelarRegistro = async () => {
+    if (cancelando || enviando) return;
+    setErrorGeneral(undefined);
+    setCancelando(true);
+    setCancelado(true);
+    try {
+      await cerrarSesion({ conAviso: false });
+    } catch {
+      setCancelado(false);
+      setErrorGeneral('No pudimos cancelar el registro. Inténtalo de nuevo.');
+    } finally {
+      setCancelando(false);
     }
   };
 
@@ -140,8 +159,8 @@ export function ElegirUsername() {
         </p>
 
         <div className="mt-6 text-center">
-          <Button variant="ghost" onClick={() => void cerrarSesion()}>
-            Cancelar y cerrar sesión
+          <Button variant="ghost" disabled={cancelando} onClick={() => void cancelarRegistro()}>
+            {cancelando ? 'Cancelando…' : 'Cancelar registro'}
           </Button>
         </div>
       </Card>
