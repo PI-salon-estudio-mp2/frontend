@@ -119,11 +119,20 @@ Detalles de la simulada:
 
 ## Ejecutar con Docker (todo el sistema)
 
-Con la misma estructura de carpetas y el `.env` del backend listo, desde **esta carpeta** (`frontend/`):
+`docker-compose.yml` levanta los **tres servicios**: frontend, `backend-api` y `backend-realtime`. Clona los tres repositorios uno al lado del otro:
+
+```
+proyecto/
+├── frontend/          ← este repositorio
+├── backend-api/       ← https://github.com/PI-salon-estudio-mp2/backend-api
+└── backend-realtime/  ← https://github.com/PI-salon-estudio-mp2/backend-realtime
+```
+
+Con el `.env` de cada backend listo (los dos usan la misma cuenta de servicio de Firebase), desde **esta carpeta** (`frontend/`):
 
 ```bash
 docker compose up --build
-# si la carpeta del backend se llama distinto:  BACKEND_DIR=../otro-nombre docker compose up --build
+# si alguna carpeta se llama distinto:  BACKEND_DIR=../otro REALTIME_DIR=../otro-rt docker compose up --build
 ```
 
 `docker compose` lee las variables `VITE_*` de un archivo **`.env`** en esta carpeta (no de `.env.local`).
@@ -133,6 +142,7 @@ Copia ahí los mismos valores de Firebase; si faltan, la aplicación no podrá i
 | ----------- | -------------------------- |
 | Frontend    | http://localhost:8080      |
 | Backend API | http://localhost:3000      |
+| Tiempo real | http://localhost:4000      |
 | Swagger     | http://localhost:3000/docs |
 
 Solo el frontend:
@@ -156,6 +166,7 @@ docker run --rm -p 8080:80 salon-frontend
 | Variable                    | Obligatoria | Ejemplo                                 | Descripción                                   |
 | --------------------------- | ----------- | --------------------------------------- | --------------------------------------------- |
 | `VITE_API_URL`              | Sí          | `https://backend-api-7xa7.onrender.com` | URL base de la API, sin barra final           |
+| `VITE_REALTIME_URL`         | Sprint 3    | `https://backend-realtime-s7sh.onrender.com` | URL del servidor de tiempo real (Socket.IO), sin barra final |
 | `VITE_API_DATO_PATH`        | No          | `/api/base-tecnica` (por defecto)       | Endpoint de la base técnica (TS-00)           |
 | `VITE_FIREBASE_API_KEY`     | Sí          | `AIza...`                               | Configuración web de Firebase                 |
 | `VITE_FIREBASE_AUTH_DOMAIN` | Sí          | `mi-proyecto.firebaseapp.com`           | Configuración web de Firebase                 |
@@ -339,7 +350,7 @@ frontend/
 │   ├── index.css                 # guía visual (tokens de Tailwind)
 │   └── main.tsx
 ├── Dockerfile · nginx.conf · .dockerignore
-├── docker-compose.yml            # levanta frontend + backend
+├── docker-compose.yml            # levanta frontend + backend-api + backend-realtime
 ├── vercel.json
 └── .env.example
 ```

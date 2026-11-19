@@ -10,12 +10,15 @@ COPY . .
 # Las variables VITE_* se incrustan en el código al compilar,
 # por eso llegan como argumentos de construcción (no como secretos).
 ARG VITE_API_URL
+# Dirección del servidor de tiempo real (Socket.IO); la usa la sala desde el Sprint 3.
+ARG VITE_REALTIME_URL
 ARG VITE_API_DATO_PATH=/api/base-tecnica
 ARG VITE_FIREBASE_API_KEY
 ARG VITE_FIREBASE_AUTH_DOMAIN
 ARG VITE_FIREBASE_PROJECT_ID
 ARG VITE_FIREBASE_APP_ID
 ENV VITE_API_URL=$VITE_API_URL \
+    VITE_REALTIME_URL=$VITE_REALTIME_URL \
     VITE_API_DATO_PATH=$VITE_API_DATO_PATH \
     VITE_FIREBASE_API_KEY=$VITE_FIREBASE_API_KEY \
     VITE_FIREBASE_AUTH_DOMAIN=$VITE_FIREBASE_AUTH_DOMAIN \
