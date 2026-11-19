@@ -10,6 +10,7 @@ import { PantallaCarga } from '../components/ui/PantallaCarga';
 import { TextField } from '../components/ui/TextField';
 import { useAuth } from '../features/auth/AuthContext';
 import { Avatar } from '../features/auth/Avatar';
+import { MENSAJE_CORREO_EN_USO, MENSAJE_USERNAME_EN_USO } from '../features/auth/mensajesAuth';
 import { AvatarPicker } from '../features/auth/AvatarPicker';
 import type { DatosPerfil, Perfil as PerfilGuardado } from '../features/auth/contrato';
 import {
@@ -104,8 +105,8 @@ function FormularioPerfil({ perfil }: { perfil: PerfilGuardado }) {
       for (const campo of CAMPOS) {
         if (error.fields?.[campo]) porCampo[campo] = error.fields[campo];
       }
-      if (error.code === 'USERNAME_TAKEN') porCampo.username = 'Ese nombre de usuario ya está ocupado. Prueba con otro.';
-      if (error.code === 'EMAIL_TAKEN') porCampo.correo = 'Ese correo ya está en uso. Prueba con otro.';
+      if (error.code === 'USERNAME_TAKEN') porCampo.username = MENSAJE_USERNAME_EN_USO;
+      if (error.code === 'EMAIL_TAKEN') porCampo.correo = MENSAJE_CORREO_EN_USO;
       if (CAMPOS.some((campo) => porCampo[campo])) mostrarErrores(porCampo);
       else setErrorGeneral(error.message);
     } finally {
@@ -150,6 +151,7 @@ function FormularioPerfil({ perfil }: { perfil: PerfilGuardado }) {
               inputMode="email" autoCapitalize="none" spellCheck={false} obligatorio
               value={datos.correo} error={errores.correo} onChange={(e) => cambiar('correo', e.target.value)} />
             <AvatarPicker id="avatar" value={datos.avatar} error={errores.avatar} obligatorio={false}
+              inicial={datos.username.trim().charAt(0).toLocaleUpperCase('es')}
               onChange={(avatar) => cambiar('avatar', avatar)} />
             <div className="flex flex-wrap gap-3">
               <Button variant="ghost" onClick={() => cambiar('avatar', '')} disabled={!datos.avatar}>
@@ -163,9 +165,15 @@ function FormularioPerfil({ perfil }: { perfil: PerfilGuardado }) {
           <div className="mt-6">
             <AvisoFormulario mensaje={errorGeneral} />
             <div className="flex flex-wrap gap-3">
-              <Button type="submit" disabled={guardando || !hayCambios}>{guardando ? 'Guardando…' : 'Guardar cambios'}</Button>
+              <Button type="submit" disabled={guardando || !hayCambios}
+                aria-describedby={!guardando && !hayCambios ? 'guardar-ayuda' : undefined}>
+                {guardando ? 'Guardando…' : 'Guardar cambios'}
+              </Button>
               <Button variant="secondary" onClick={cancelar} disabled={guardando}>Cancelar</Button>
             </div>
+            {!guardando && !hayCambios && (
+              <p id="guardar-ayuda" className="mt-3 text-sm text-muted">Cambia algún dato para poder guardar.</p>
+            )}
           </div>
         </form>
       </Card>

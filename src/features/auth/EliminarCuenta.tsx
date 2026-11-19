@@ -54,18 +54,20 @@ export function EliminarCuenta({ disabled }: { disabled: boolean }) {
           <span>¿Deseas eliminar tu cuenta definitivamente?</span>
         </h2>
         <div id="consecuencias-eliminacion" className="my-4 space-y-3">
-          <p>Perderás el acceso a tu cuenta y esto sera lo que pasará:</p>
-          <p>Se borrarán tu perfil y tus datos personales.</p> 
-          <p>Tu nombre de usuario <strong className="break-words">@{username}</strong> quedará disponible para otras personas.</p>
-          <p>Se eliminarán las salas que creaste y todo su contenido, así como tus mensajes en otras salas.</p> 
-          <p>Dejarás de participar en las salas de otras personas.</p>
+          <p>Perderás el acceso a tu cuenta y esto será lo que pasará:</p>
+          <ul className="list-disc space-y-2 pl-6">
+            <li>Se borrarán tu perfil y tus datos personales.</li>
+            <li>Tu nombre de usuario <strong className="break-words">@{username}</strong> quedará disponible para otras personas.</li>
+            <li>Se eliminarán las salas que creaste y todo su contenido, así como tus mensajes en otras salas.</li>
+            <li>Dejarás de participar en las salas de otras personas.</li>
+          </ul>
         </div>
-        <h2 id="mensaje-de-advertencia" className="text-l font-bold text-danger-700">Esta acción no se puede deshacer</h2>
+        <h2 id="mensaje-de-advertencia" className="text-lg font-bold text-danger-700">Esta acción no se puede deshacer</h2>
         <AvisoFormulario mensaje={error} />
         <p role="status" className="my-3">{eliminando ? 'Eliminando cuenta…' : ''}</p>
         <div className="flex flex-wrap gap-3" aria-busy={eliminando}>
           <Button autoFocus variant="secondary" aria-disabled={eliminando} onClick={cerrar}>Cancelar</Button>
-          <Button variant="danger" className="focus-visible:outline-danger-700" aria-disabled={eliminando} onClick={() => void confirmar()}>Si, eliminar definitivamente</Button>
+          <Button variant="danger" className="focus-visible:outline-danger-700" aria-disabled={eliminando} onClick={() => void confirmar()}>Sí, eliminar definitivamente</Button>
         </div>
       </dialog>
     </section>

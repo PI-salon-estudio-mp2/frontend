@@ -8,9 +8,11 @@ interface AvatarPickerProps {
   onChange: (id: string) => void;
   error?: string;
   obligatorio?: boolean;
+  /** Inicial del estudiante (la misma del avatar del encabezado). Sin ella se muestra un ícono. */
+  inicial?: string;
 }
 
-export function AvatarPicker({ id, value, onChange, error, obligatorio = true }: AvatarPickerProps) {
+export function AvatarPicker({ id, value, onChange, error, obligatorio = true, inicial }: AvatarPickerProps) {
   const errorId = `${id}-error`;
 
   return (
@@ -36,7 +38,9 @@ export function AvatarPicker({ id, value, onChange, error, obligatorio = true }:
                 className="grid size-14 place-items-center rounded-full text-white outline-offset-4 group-has-[:checked]:ring-4 group-has-[:checked]:ring-ink/80 group-has-[:focus-visible]:outline-3 group-has-[:focus-visible]:outline-primary-600"
                 style={{ backgroundColor: a.color }}
               >
-                <Icon name="user" className="size-7" />
+                {inicial
+                  ? <span aria-hidden="true" className="text-xl font-bold">{inicial}</span>
+                  : <Icon name="user" className="size-7" />}
               </span>
               <span className="absolute -right-1 -bottom-1 hidden size-6 place-items-center rounded-full bg-ink text-white group-has-[:checked]:grid">
                 <Icon name="check" className="size-4" />

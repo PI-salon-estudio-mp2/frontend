@@ -83,7 +83,17 @@ describe('Mi perfil', () => {
     expect(input('Nombre de usuario').value).toBe('ana_perez');
     expect(input('Correo electrónico').value).toBe('ana@correo.com');
     expect(screen.getByText('Avatar por defecto')).toBeTruthy();
-    expect((screen.getByRole('button', { name: 'Guardar cambios' }) as HTMLButtonElement).disabled).toBe(true);
+    const guardarBtn = screen.getByRole('button', { name: 'Guardar cambios' }) as HTMLButtonElement;
+    expect(guardarBtn.disabled).toBe(true);
+    expect(screen.getByText('Cambia algún dato para poder guardar.')).toBeTruthy();
+    // El selector de avatar muestra la inicial del usuario (igual que el encabezado), no un ícono.
+    const opciones = Array.from(document.querySelectorAll<HTMLInputElement>('input[name="avatar"]'));
+    expect(opciones.length).toBeGreaterThan(0);
+    expect(opciones.every((o) => o.closest('label')!.textContent!.startsWith('A'))).toBe(true);
+    expect(guardarBtn.getAttribute('aria-describedby')).toBe('guardar-ayuda');
+    cambiar('Nombres', 'Ana María');
+    expect(guardarBtn.disabled).toBe(false);
+    expect(screen.queryByText('Cambia algún dato para poder guardar.')).toBeNull();
   });
 
   it('guarda los cinco campos con token y sincroniza el perfil de toda la sesión', async () => {
@@ -121,7 +131,7 @@ describe('Mi perfil', () => {
     enviar();
     await waitFor(() => expect(input(label).getAttribute('aria-invalid')).toBe('true'));
     expect(input(label).getAttribute('aria-describedby')).toContain(`${id}-error`);
-    expect(document.getElementById(`${id}-error`)?.textContent).toMatch(/ocupado|en uso/);
+    expect(document.getElementById(`${id}-error`)?.textContent).toMatch(/en uso|ya tiene una cuenta/);
     // El error se renderiza antes de que useEffect traslade el foco al resumen.
     await waitFor(() => {
       expect(document.activeElement?.getAttribute('aria-labelledby')).toBe('resumen-errores-titulo');
@@ -278,7 +288,7 @@ describe('US-05 eliminación de cuenta', () => {
     const { dialogo } = await abrirEliminacion();
     let resolver!: (value: Response) => void;
     vi.mocked(fetch).mockImplementationOnce(() => new Promise<Response>((resolve) => { resolver = resolve; }));
-    const confirmar = screen.getByRole('button', { name: 'Eliminar definitivamente' });
+    const confirmar = screen.getByRole('button', { name: 'Sí, eliminar definitivamente' });
     await userEvent.dblClick(confirmar);
     await screen.findByText('Eliminando cuenta…');
     fireEvent(dialogo, new Event('cancel', { cancelable: true }));
@@ -301,12 +311,12 @@ describe('US-05 eliminación de cuenta', () => {
     else vi.mocked(fetch).mockResolvedValueOnce(tipo === 'servidor'
       ? respuesta({ error: { code: 'DB_UNAVAILABLE' } }, 503)
       : respuesta({ data: { deleted: false } }));
-    await userEvent.click(screen.getByRole('button', { name: 'Eliminar definitivamente' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Sí, eliminar definitivamente' }));
     await screen.findByText(tipo === 'servidor' ? /No se pudo eliminar la cuenta/ : /No pudimos confirmar la eliminación/);
     expect(signOut).not.toHaveBeenCalled();
     expect(JSON.parse(screen.getByLabelText('Perfil de la sesión').textContent!)).toEqual(original);
     vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 204 }));
-    await userEvent.click(screen.getByRole('button', { name: 'Eliminar definitivamente' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Sí, eliminar definitivamente' }));
     await screen.findByText('Tu cuenta se eliminó definitivamente.');
   });
 });

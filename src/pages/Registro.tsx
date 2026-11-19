@@ -236,6 +236,7 @@ export function Registro() {
             id="avatar"
             value={datos.avatar}
             error={errores.avatar}
+            inicial={datos.username.trim().charAt(0).toLocaleUpperCase('es')}
             onChange={(id) => cambiar('avatar', id)}
           />
 

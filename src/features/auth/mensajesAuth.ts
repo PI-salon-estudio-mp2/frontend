@@ -1,5 +1,11 @@
 export const MENSAJE_CREDENCIALES = 'Correo o contraseña incorrectos.';
 
+/** Conflictos de unicidad: un solo texto para registro y perfil. */
+export const MENSAJE_USERNAME_EN_USO = 'Ese nombre de usuario ya está en uso. Prueba con otro.';
+export const MENSAJE_CORREO_EN_USO = 'Ese correo ya tiene una cuenta. Usa otro correo.';
+/** Variante del registro: ahí además se puede iniciar sesión. */
+export const MENSAJE_CORREO_EN_USO_REGISTRO = 'Ese correo ya tiene una cuenta. Inicia sesión o usa otro correo.';
+
 /** Traduce los errores de Firebase Authentication a mensajes claros en español. */
 export function mensajeErrorAuth(error: unknown): string {
   const code =
