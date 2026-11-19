@@ -164,10 +164,16 @@ function FormularioPerfil({ perfil }: { perfil: PerfilGuardado }) {
           <div className="mt-6">
             <AvisoFormulario mensaje={errorGeneral} />
             <div className="flex flex-wrap gap-3">
-              <Button type="submit" disabled={guardando || !hayCambios}>{guardando ? 'Guardando…' : 'Guardar cambios'}</Button>
+              <Button type="submit" disabled={guardando || !hayCambios}
+                aria-describedby={!guardando && !hayCambios ? 'guardar-ayuda' : undefined}>
+                {guardando ? 'Guardando…' : 'Guardar cambios'}
+              </Button>
               <Button variant="secondary" onClick={cancelar} disabled={guardando}>Cancelar</Button>
             </div>
           </div>
+            {!guardando && !hayCambios && (
+              <p id="guardar-ayuda" className="mt-3 text-sm text-muted">Cambia algún dato para poder guardar.</p>
+            )}
         </form>
       </Card>
       <EliminarCuenta disabled={guardando} />

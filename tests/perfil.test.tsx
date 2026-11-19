@@ -83,7 +83,13 @@ describe('Mi perfil', () => {
     expect(input('Nombre de usuario').value).toBe('ana_perez');
     expect(input('Correo electrónico').value).toBe('ana@correo.com');
     expect(screen.getByText('Avatar por defecto')).toBeTruthy();
-    expect((screen.getByRole('button', { name: 'Guardar cambios' }) as HTMLButtonElement).disabled).toBe(true);
+    const guardarBtn = screen.getByRole('button', { name: 'Guardar cambios' }) as HTMLButtonElement;
+    expect(guardarBtn.disabled).toBe(true);
+    expect(screen.getByText('Cambia algún dato para poder guardar.')).toBeTruthy();
+    expect(guardarBtn.getAttribute('aria-describedby')).toBe('guardar-ayuda');
+    cambiar('Nombres', 'Ana María');
+    expect(guardarBtn.disabled).toBe(false);
+    expect(screen.queryByText('Cambia algún dato para poder guardar.')).toBeNull();
   });
 
   it('guarda los cinco campos con token y sincroniza el perfil de toda la sesión', async () => {
