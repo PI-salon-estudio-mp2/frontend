@@ -137,11 +137,11 @@ const server = createServer(async (req, res) => {
 
   if (
     (path === '/api/rooms' && ['GET', 'POST'].includes(req.method))
-    || (req.method === 'GET' && /^\/api\/rooms\/[^/]+$/.test(path))
+    || (['GET', 'PATCH'].includes(req.method) && /^\/api\/rooms\/[^/]+$/.test(path))
   ) {
     const usuario = leerUsuario(req);
     if (!usuario) return error(res, 401, 'UNAUTHORIZED', 'Falta iniciar sesión');
-    const cuerpo = req.method === 'POST' ? await leerCuerpo(req) : undefined;
+    const cuerpo = ['POST', 'PATCH'].includes(req.method) ? await leerCuerpo(req) : undefined;
     await new Promise((resolve) => setTimeout(resolve, DELAY));
     if (eliminados.has(usuario.uid)) return error(res, 401, 'UNAUTHORIZED', 'Cuenta eliminada');
     if (SALAS === 'error') return error(res, 503, 'DB_UNAVAILABLE', 'No se pudo conectar con la base de datos');
@@ -186,6 +186,16 @@ const server = createServer(async (req, res) => {
     const sala = salas.get(path.slice('/api/rooms/'.length).toUpperCase());
     if (sala?.anfitrionUid !== usuario.uid) {
       return error(res, 404, 'ROOM_NOT_FOUND', 'La sala no existe o no está en tu panel.');
+    }
+    // Contrato de backend-api: PATCH /api/rooms/:id { nombre } (solo el anfitrión; aquí solo ve las suyas).
+    if (req.method === 'PATCH') {
+      const nombre = typeof cuerpo?.nombre === 'string' ? cuerpo.nombre.trim().replace(/\s+/g, ' ') : '';
+      if (nombre.length < MIN_NOMBRE_SALA || nombre.length > MAX_NOMBRE_SALA) {
+        return error(res, 400, 'VALIDATION_ERROR', 'Revisa el nombre de la sala.', {
+          nombre: `Escribe un nombre de entre ${MIN_NOMBRE_SALA} y ${MAX_NOMBRE_SALA} caracteres.`,
+        });
+      }
+      sala.nombre = nombre;
     }
     return json(res, 200, { data: salaPublica(sala) });
   }

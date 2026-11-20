@@ -95,12 +95,12 @@ test('eliminación: exige token, libera username, es idempotente y no recrea el 
 test('salas: valida el nombre, conserva un ID por solicitud y limita el acceso a su anfitrión', async () => {
   const anfitrion = token('anfitrion', 'anfitrion@correo.com');
   const otro = token('otro-anfitrion', 'otro-anfitrion@correo.com');
-  const consultar = async (usuario, ruta = '', datos) => {
+  const consultar = async (usuario, ruta = '', datos, metodo) => {
     const headers = new Headers();
     if (usuario) headers.set('Authorization', `Bearer ${usuario}`);
     if (datos) headers.set('Content-Type', 'application/json');
     const res = await fetch(`${base}/api/rooms${ruta}`, {
-      method: datos ? 'POST' : 'GET',
+      method: datos ? (metodo ?? 'POST') : 'GET',
       headers,
       body: datos ? JSON.stringify(datos) : undefined,
     });
@@ -130,6 +130,21 @@ test('salas: valida el nombre, conserva un ID por solicitud y limita el acceso a
   assert.deepEqual((await consultar(anfitrion, `/${sala.id}`)).data, sala);
   assert.deepEqual((await consultar(anfitrion, `/${sala.id.toLowerCase()}`)).data, sala);
   assert.deepEqual((await consultar(otro)).data, []);
+  assert.equal((await consultar(otro, `/${sala.id}`)).status, 404);
+
+  const renombrar = (usuario, id, nombre) => consultar(usuario, `/${id}`, { nombre }, 'PATCH');
+  assert.equal((await renombrar(undefined, sala.id, 'Mecánica')).status, 401);
+  assert.equal((await renombrar(otro, sala.id, 'Mecánica')).status, 404);
+  for (const nombre of ['   ', ' AB ', 'a'.repeat(41)]) {
+    const invalida = await renombrar(anfitrion, sala.id, nombre);
+    assert.equal(invalida.status, 400);
+    assert.ok(invalida.error.fields.nombre);
+  }
+  assert.equal((await renombrar(anfitrion, 'NOEXISTE', 'Mecánica')).status, 404);
+  const renombrada = await renombrar(anfitrion, sala.id.toLowerCase(), '  Mecánica   clásica ');
+  assert.equal(renombrada.status, 200);
+  assert.deepEqual(renombrada.data, { ...sala, nombre: 'Mecánica clásica' });
+  assert.deepEqual((await consultar(anfitrion)).data, [renombrada.data]);
   assert.equal((await consultar(otro, `/${sala.id}`)).status, 404);
 
   const otra = await consultar(otro, '', datos);
