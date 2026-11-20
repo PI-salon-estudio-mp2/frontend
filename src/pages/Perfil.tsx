@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { EliminarCuenta } from '../features/auth/EliminarCuenta';
 import { Alert } from '../components/ui/Alert';
 import { AvisoFormulario } from '../components/ui/AvisoFormulario';
@@ -46,8 +46,15 @@ function FormularioPerfil({ perfil }: { perfil: PerfilGuardado }) {
   const [enfoque, setEnfoque] = useState(0);
   const enviando = useRef(false);
   const guardado = useRef(perfil);
+  const avisoExito = useRef<HTMLDivElement>(null);
   const hayCambios = CAMPOS.some((campo) => datos[campo] !== guardado.current[campo]);
   const iniciales = `${datos.nombres.trim().charAt(0)}${datos.apellidos.trim().charAt(0)}`.toLocaleUpperCase('es') || 'E';
+
+  // Al guardar, el botón y los campos se deshabilitan y el foco se perdería en <body>:
+  // se lleva al aviso de éxito para que quien usa teclado o lector siga desde ahí.
+  useEffect(() => {
+    if (exito) avisoExito.current?.focus();
+  }, [exito]);
 
   const cambiar = (campo: Campo, valor: string) => {
     if (enviando.current) return;
@@ -120,7 +127,11 @@ function FormularioPerfil({ perfil }: { perfil: PerfilGuardado }) {
       <PageHeader title="Mi perfil" description="Consulta y actualiza tus datos personales." />
       <Card>
         <div role="status" aria-atomic="true" className={exito ? 'mb-6' : undefined}>
-          {exito && <Alert tone="success" title="Perfil actualizado" />}
+          {exito && (
+            <div ref={avisoExito} tabIndex={-1} className="rounded-2xl">
+              <Alert tone="success" title="Perfil actualizado" />
+            </div>
+          )}
           {guardando && <span className="sr-only">Guardando…</span>}
         </div>
         <FormErrorSummary
