@@ -119,6 +119,36 @@ describe('Mi perfil', () => {
     expect(input('Nombre de usuario').value).toBe('mariana_g');
   });
 
+  it('la tarjeta de arriba muestra lo guardado y no el borrador inválido, hasta que se guarda bien', async () => {
+    montar();
+    await screen.findByRole('heading', { name: 'Mi perfil' });
+    const tarjeta = screen.getByText('Ana Pérez').parentElement!;
+    expect(tarjeta.textContent).toBe('Ana Pérez@ana_perez');
+    cambiar('Nombre de usuario', 'Malo!');
+    cambiar('Nombres', '');
+    expect(tarjeta.textContent).toBe('Ana Pérez@ana_perez');
+    enviar();
+    await screen.findByText(/Revisa \d campos? antes de continuar/);
+    expect(tarjeta.textContent).toBe('Ana Pérez@ana_perez');
+    cambiar('Nombre de usuario', 'ana_nueva');
+    cambiar('Nombres', 'Ana María');
+    enviar();
+    await screen.findByText('Perfil actualizado');
+    expect(tarjeta.textContent).toBe('Ana María Pérez@ana_nueva');
+  });
+
+  it('al guardar lleva el foco al aviso «Perfil actualizado» en vez de perderlo en el cuerpo de la página', async () => {
+    montar();
+    await screen.findByRole('heading', { name: 'Mi perfil' });
+    cambiar('Nombres', 'Mariana');
+    const boton = screen.getByRole('button', { name: 'Guardar cambios' });
+    boton.focus();
+    enviar();
+    const aviso = (await screen.findByText('Perfil actualizado')).closest('[tabindex="-1"]');
+    await waitFor(() => expect(document.activeElement).toBe(aviso));
+    expect(document.activeElement).not.toBe(document.body);
+  });
+
   it.each([
     ['USERNAME_TAKEN', 'Nombre de usuario', 'ocupado', 'username'],
     ['EMAIL_TAKEN', 'Correo electrónico', 'existente@correo.com', 'correo'],
