@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Alert } from '../../components/ui/Alert';
 import { Button, ButtonLink } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
-import { rutaSala } from '../../routes/rutas';
+import { rutaEditarSala, rutaSala } from '../../routes/rutas';
 import type { SalaAdministrada } from './api';
 
 export function TarjetaSala({ sala, notificarCopia }: {
@@ -43,6 +43,9 @@ export function TarjetaSala({ sala, notificarCopia }: {
         <Button variant="secondary" size="sm" onClick={() => void copiarId()} aria-label={`Copiar ID de ${sala.nombre}`}>
           Copiar ID
         </Button>
+        <ButtonLink to={rutaEditarSala(sala.id)} variant="secondary" size="sm" aria-label={`Editar nombre de ${sala.nombre}`}>
+          Editar nombre
+        </ButtonLink>
       </div>
       <div role="alert" aria-atomic="true">
         {errorCopia && (

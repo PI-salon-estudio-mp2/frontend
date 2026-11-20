@@ -285,6 +285,7 @@ Las rutas requieren el ID token de Firebase y devuelven los datos en `{ data: ..
 | `GET /api/rooms` | 200 con las salas del anfitrión. La lista vacía es `[]`. |
 | `POST /api/rooms` | Recibe `{ nombre, solicitudId }`. Devuelve 201 al crear y 200 al repetir la misma solicitud. |
 | `GET /api/rooms/:id` | 200 con la sala del anfitrión o 404 `ROOM_NOT_FOUND`. |
+| `PATCH /api/rooms/:id` | Recibe `{ nombre }` (3 a 40 caracteres). Devuelve 200 con la sala actualizada, 400 `VALIDATION_ERROR` con `fields.nombre` o 404 `ROOM_NOT_FOUND`. El BE real responde además 403 `FORBIDDEN` si quien llama no es el anfitrión. |
 
 Cada sala devuelve `{ id, nombre, rol: "administrador" }`. Las salas nuevas usan un código como `ABC-12D`.
 Los IDs de salas existentes siguen siendo válidos. El nombre admite de 3 a 40 caracteres después

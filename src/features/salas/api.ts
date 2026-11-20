@@ -48,6 +48,17 @@ export function obtenerSala(id: string, token: string, signal: AbortSignal) {
   });
 }
 
+/** PATCH /api/rooms/:id — cambia el nombre; solo el anfitrión (403 FORBIDDEN si no lo es). */
+export function actualizarSala(id: string, nombre: string, token: string, signal: AbortSignal) {
+  return apiRequest(`${RUTA_SALAS}/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    token,
+    body: { nombre },
+    signal,
+    parse: (json) => leerSala(leerDatos(json)),
+  });
+}
+
 export function crearSala(nombre: string, solicitudId: string, token: string, signal: AbortSignal) {
   return apiRequest(RUTA_SALAS, {
     method: 'POST',
