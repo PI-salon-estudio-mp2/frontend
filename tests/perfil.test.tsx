@@ -119,6 +119,24 @@ describe('Mi perfil', () => {
     expect(input('Nombre de usuario').value).toBe('mariana_g');
   });
 
+  it('la tarjeta de arriba muestra lo guardado y no el borrador inválido, hasta que se guarda bien', async () => {
+    montar();
+    await screen.findByRole('heading', { name: 'Mi perfil' });
+    const tarjeta = screen.getByText('Ana Pérez').parentElement!;
+    expect(tarjeta.textContent).toBe('Ana Pérez@ana_perez');
+    cambiar('Nombre de usuario', 'Malo!');
+    cambiar('Nombres', '');
+    expect(tarjeta.textContent).toBe('Ana Pérez@ana_perez');
+    enviar();
+    await screen.findByText(/Revisa \d campos? antes de continuar/);
+    expect(tarjeta.textContent).toBe('Ana Pérez@ana_perez');
+    cambiar('Nombre de usuario', 'ana_nueva');
+    cambiar('Nombres', 'Ana María');
+    enviar();
+    await screen.findByText('Perfil actualizado');
+    expect(tarjeta.textContent).toBe('Ana María Pérez@ana_nueva');
+  });
+
   it('al guardar lleva el foco al aviso «Perfil actualizado» en vez de perderlo en el cuerpo de la página', async () => {
     montar();
     await screen.findByRole('heading', { name: 'Mi perfil' });

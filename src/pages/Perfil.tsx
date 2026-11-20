@@ -48,7 +48,8 @@ function FormularioPerfil({ perfil }: { perfil: PerfilGuardado }) {
   const guardado = useRef(perfil);
   const avisoExito = useRef<HTMLDivElement>(null);
   const hayCambios = CAMPOS.some((campo) => datos[campo] !== guardado.current[campo]);
-  const iniciales = `${datos.nombres.trim().charAt(0)}${datos.apellidos.trim().charAt(0)}`.toLocaleUpperCase('es') || 'E';
+  // La tarjeta de arriba muestra lo guardado, no el borrador: hasta que el cambio se guarda bien no debe parecer aplicado.
+  const iniciales = `${guardado.current.nombres.trim().charAt(0)}${guardado.current.apellidos.trim().charAt(0)}`.toLocaleUpperCase('es') || 'E';
 
   // Al guardar, el botón y los campos se deshabilitan y el foco se perdería en <body>:
   // se lleva al aviso de éxito para que quien usa teclado o lector siga desde ahí.
@@ -142,11 +143,11 @@ function FormularioPerfil({ perfil }: { perfil: PerfilGuardado }) {
           <fieldset disabled={guardando} className="space-y-5 disabled:opacity-70">
             <legend className="sr-only">Datos personales</legend>
             <div className="flex items-center gap-4 border-b border-primary-100 pb-5">
-              <Avatar key={datos.avatar} id={datos.avatar} iniciales={iniciales} className="size-16 text-xl" />
+              <Avatar key={guardado.current.avatar} id={guardado.current.avatar} iniciales={iniciales} className="size-16 text-xl" />
               <div className="min-w-0">
-                <p className="break-words font-bold text-ink">{`${datos.nombres} ${datos.apellidos}`.trim() || 'Estudiante'}</p>
-                <p className="break-words text-muted">@{datos.username}</p>
-                {!datos.avatar && <p className="text-sm text-muted">Avatar por defecto</p>}
+                <p className="break-words font-bold text-ink">{`${guardado.current.nombres} ${guardado.current.apellidos}`.trim() || 'Estudiante'}</p>
+                <p className="break-words text-muted">@{guardado.current.username}</p>
+                {!guardado.current.avatar && <p className="text-sm text-muted">Avatar por defecto</p>}
               </div>
             </div>
             <div className="grid gap-5 sm:grid-cols-2">
