@@ -12,6 +12,8 @@ interface Grupo {
 export function Footer() {
   const { estado } = useAuth();
   const autenticado = estado.status === 'autenticado';
+  // Mientras se verifica la sesión no se sabe si es visitante: no se muestran enlaces de cuenta.
+  const verificando = estado.status === 'cargando';
 
   const grupos: Grupo[] = [
     ...(autenticado
@@ -26,15 +28,19 @@ export function Footer() {
           },
         ]
       : []),
-    {
-      titulo: 'Cuenta',
-      enlaces: autenticado
-        ? [{ to: RUTAS.perfil, label: 'Mi perfil' }]
-        : [
-            { to: RUTAS.ingresar, label: 'Iniciar sesión' },
-            { to: RUTAS.registro, label: 'Crear cuenta' },
-          ],
-    },
+    ...(verificando
+      ? []
+      : [
+          {
+            titulo: 'Cuenta',
+            enlaces: autenticado
+              ? [{ to: RUTAS.perfil, label: 'Mi perfil' }]
+              : [
+                  { to: RUTAS.ingresar, label: 'Iniciar sesión' },
+                  { to: RUTAS.registro, label: 'Crear cuenta' },
+                ],
+          },
+        ]),
     {
       titulo: 'Ayuda',
       enlaces: [{ to: RUTAS.accesibilidad, label: 'Declaración de accesibilidad' }],
