@@ -38,13 +38,21 @@ function PanelSalas({ saludo }: { saludo: string }) {
   const [mostrarBienvenida] = useState(
     () => typeof location.state === 'object' && location.state !== null && 'bienvenida' in location.state,
   );
+  // El aviso de «Nombre actualizado» llega desde la pantalla de edición y tampoco se repite al recargar.
+  const [salaRenombrada] = useState(() => {
+    const estadoNavegacion: unknown = location.state;
+    return typeof estadoNavegacion === 'object' && estadoNavegacion !== null
+      && 'salaRenombrada' in estadoNavegacion && typeof estadoNavegacion.salaRenombrada === 'string'
+      ? estadoNavegacion.salaRenombrada
+      : undefined;
+  });
   const limpiado = useRef(false);
   useEffect(() => {
-    if (mostrarBienvenida && !limpiado.current) {
+    if ((mostrarBienvenida || salaRenombrada) && !limpiado.current) {
       limpiado.current = true;
       navigate(location.pathname, { replace: true, state: null });
     }
-  }, [mostrarBienvenida, navigate, location.pathname]);
+  }, [mostrarBienvenida, salaRenombrada, navigate, location.pathname]);
 
   const vacio = estado.status === 'exito' && estado.datos.length === 0;
   // Un solo botón principal por pantalla: con salas, «Entrar» (en cada tarjeta) es el principal
@@ -72,6 +80,9 @@ function PanelSalas({ saludo }: { saludo: string }) {
         aviso={copia.id ? {
           titulo: 'ID copiado',
           mensaje: `Copiaste el código ${copia.id}. Compártelo con tu grupo para invitarlos.`,
+        } : salaRenombrada ? {
+          titulo: 'Nombre actualizado',
+          mensaje: `La sala ahora se llama «${salaRenombrada}».`,
         } : undefined}
         version={copia.version}
       />

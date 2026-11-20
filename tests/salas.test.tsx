@@ -2,9 +2,10 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { CrearSala } from '../src/pages/CrearSala';
+import { EditarSala } from '../src/pages/EditarSala';
 import { Panel } from '../src/pages/Panel';
 import { Sala } from '../src/pages/Sala';
-import { RUTAS, rutaSala } from '../src/routes/rutas';
+import { RUTAS, rutaEditarSala, rutaSala } from '../src/routes/rutas';
 
 vi.mock('../src/features/auth/AuthContext', () => {
   const contexto = {
@@ -33,6 +34,7 @@ function montar(ruta: string = RUTAS.panel) {
         <Route path={RUTAS.panel} element={<Panel />} />
         <Route path={RUTAS.crearSala} element={<CrearSala />} />
         <Route path={RUTAS.sala} element={<Sala />} />
+        <Route path={RUTAS.editarSala} element={<EditarSala />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -140,4 +142,80 @@ it('copia el ID de la sala y confirma el resultado en una región de estado', as
   await alerta.findByText('No pudimos copiar el ID');
   expect(alerta.getByText('Vuelve a pulsar «Copiar ID» o selecciona el código y cópialo manualmente.')).toBeTruthy();
   expect(screen.queryByText('ID copiado')).toBeNull();
+});
+
+it('cada sala del panel ofrece «Editar nombre» y lleva a la pantalla de edición', async () => {
+  pedir.mockResolvedValueOnce(respuesta([sala, { ...sala, id: 'BQB-15M', nombre: 'Biología' }]));
+  montar();
+  const editar = await screen.findByRole('link', { name: 'Editar nombre de Álgebra' });
+  expect(editar.getAttribute('href')).toBe(rutaEditarSala(sala.id));
+  expect(editar.className).not.toContain('bg-primary-600'); // «Entrar» sigue siendo el principal
+  expect(screen.getByRole('link', { name: 'Editar nombre de Biología' }).getAttribute('href')).toBe(rutaEditarSala('BQB-15M'));
+});
+
+it('renombra la sala con PATCH, vuelve al panel y confirma el cambio', async () => {
+  const renombrada = { ...sala, nombre: 'Álgebra lineal' };
+  pedir.mockResolvedValueOnce(respuesta([sala]))
+    .mockResolvedValueOnce(respuesta(sala))
+    .mockResolvedValueOnce(respuesta(renombrada))
+    .mockResolvedValueOnce(respuesta([renombrada]));
+  montar();
+  fireEvent.click(await screen.findByRole('link', { name: 'Editar nombre de Álgebra' }));
+  const campo = await screen.findByRole('textbox', { name: /Nombre de la sala/ }) as HTMLInputElement;
+  expect(campo.value).toBe('Álgebra');
+  expect(pedir.mock.calls[1][0]).toBe(`http://api.test/api/rooms/${sala.id}`);
+
+  fireEvent.change(campo, { target: { value: '  Álgebra   lineal ' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Guardar nombre' }));
+  await screen.findByRole('heading', { name: 'Álgebra lineal' });
+  const [url, opciones] = pedir.mock.calls[2];
+  expect(url).toBe(`http://api.test/api/rooms/${sala.id}`);
+  expect(opciones.method).toBe('PATCH');
+  expect(opciones.headers).toEqual(expect.objectContaining({ Authorization: 'Bearer token-de-prueba' }));
+  expect(JSON.parse(String(opciones.body))).toEqual({ nombre: 'Álgebra lineal' });
+  const confirmacion = within((await screen.findByText('Nombre actualizado')).closest<HTMLElement>('[role="status"]')!);
+  expect(confirmacion.getByText('La sala ahora se llama «Álgebra lineal».')).toBeTruthy();
+});
+
+it('valida el nombre antes de enviarlo y no envía el mismo nombre', async () => {
+  pedir.mockResolvedValueOnce(respuesta(sala));
+  montar(rutaEditarSala(sala.id));
+  const campo = await screen.findByRole('textbox', { name: /Nombre de la sala/ });
+  const guardar = screen.getByRole('button', { name: 'Guardar nombre' });
+  for (const valor of ['   ', ' AB ', 'a'.repeat(41)]) {
+    fireEvent.change(campo, { target: { value: valor } });
+    fireEvent.click(guardar);
+    expect(screen.getByRole('link', { name: 'Escribe un nombre de entre 3 y 40 caracteres.' })).toBeTruthy();
+    expect(campo.getAttribute('aria-invalid')).toBe('true');
+  }
+  fireEvent.change(campo, { target: { value: ' Álgebra ' } });
+  fireEvent.click(guardar);
+  expect(screen.getByRole('link', { name: 'Escribe un nombre distinto al actual o cancela.' })).toBeTruthy();
+  expect(pedir).toHaveBeenCalledTimes(1); // solo la carga de la sala
+});
+
+it('muestra el error del servidor al renombrar y conserva lo escrito', async () => {
+  const error = (code: string, status: number, fields?: Record<string, string>) =>
+    new Response(JSON.stringify({ error: { code, message: 'x', fields } }), { status });
+  pedir.mockResolvedValueOnce(respuesta(sala))
+    .mockResolvedValueOnce(error('FORBIDDEN', 403))
+    .mockResolvedValueOnce(error('VALIDATION_ERROR', 400, { nombre: 'Escribe un nombre de entre 3 y 40 caracteres.' }));
+  montar(rutaEditarSala(sala.id));
+  const campo = await screen.findByRole('textbox', { name: /Nombre de la sala/ }) as HTMLInputElement;
+  fireEvent.change(campo, { target: { value: 'Cálculo' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Guardar nombre' }));
+  const alerta = within((await screen.findByText('No pudimos cambiar el nombre')).closest<HTMLElement>('[role="alert"]')!);
+  expect(alerta.getByText('Solo el anfitrión puede modificar o eliminar esta sala.')).toBeTruthy();
+  expect(campo.value).toBe('Cálculo');
+  fireEvent.click(screen.getByRole('button', { name: 'Guardar nombre' }));
+  await screen.findByRole('link', { name: 'Escribe un nombre de entre 3 y 40 caracteres.' });
+  expect(campo.getAttribute('aria-invalid')).toBe('true');
+});
+
+it('avisa si la sala a editar no existe en el panel', async () => {
+  pedir.mockResolvedValueOnce(new Response(JSON.stringify({ error: { code: 'ROOM_NOT_FOUND', message: 'x' } }), { status: 404 }));
+  montar(rutaEditarSala('NOEXISTE'));
+  await screen.findByText('La sala no existe o no está en tu panel.');
+  expect(screen.getByRole('link', { name: 'Volver a Mis salas' }).getAttribute('href')).toBe(RUTAS.panel);
+  expect(screen.queryByRole('textbox')).toBeNull();
 });

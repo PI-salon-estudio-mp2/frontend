@@ -40,6 +40,7 @@ const MENSAJES_POR_CODIGO: Record<string, string> = {
   EMAIL_TAKEN: MENSAJE_CORREO_EN_USO_REGISTRO,
   VALIDATION_ERROR: 'Revisa los datos del formulario e inténtalo de nuevo.',
   UNAUTHORIZED: 'Tu sesión no es válida o expiró. Inicia sesión de nuevo.',
+  FORBIDDEN: 'Solo el anfitrión puede modificar o eliminar esta sala.',
 };
 
 function mensajeHttp(status: number, code?: string): string {
