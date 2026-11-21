@@ -31,10 +31,10 @@ const MIN_NOMBRE_SALA = 3;
 const MAX_NOMBRE_SALA = 40;
 const salaPublica = ({ id, nombre }) => ({ id, nombre, rol: 'administrador' });
 
+// Mismo formato que backend-api: 8 caracteres en mayúsculas y números, sin 0, O, 1, I ni L.
+const ALFABETO_ID_SALA = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 function generarCodigoSala() {
-  const letra = () => String.fromCharCode(65 + randomInt(26));
-  const numero = String(randomInt(100)).padStart(2, '0');
-  return `${letra()}${letra()}${letra()}-${numero}${letra()}`;
+  return Array.from({ length: 8 }, () => ALFABETO_ID_SALA[randomInt(ALFABETO_ID_SALA.length)]).join('');
 }
 
 const json = (res, status, body) => {
