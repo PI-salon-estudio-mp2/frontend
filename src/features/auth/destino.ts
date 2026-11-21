@@ -22,5 +22,8 @@ const NOMBRES_DESTINO: Record<string, string> = {
 export function nombreDestino(state: unknown): string | undefined {
   if (typeof state !== 'object' || state === null || !('from' in state)) return undefined;
   const ruta = leerDestino(state).split(/[?#]/)[0];
-  return NOMBRES_DESTINO[ruta] ?? 'la página que querías abrir';
+  if (NOMBRES_DESTINO[ruta]) return NOMBRES_DESTINO[ruta];
+  // Enlace directo a una sala (US-08): después de iniciar sesión se vuelve a entrar a ella.
+  if (/^\/salas\/[^/]+$/.test(ruta)) return 'la sala';
+  return 'la página que querías abrir';
 }
