@@ -4,5 +4,8 @@ export const APP_NAME = 'Salón de Estudio';
 /** URL base de la API (Render). Se lee de las variables de entorno, nunca se escribe aquí. */
 export const API_URL = (import.meta.env.VITE_API_URL ?? '').trim().replace(/\/+$/, '');
 
+/** URL del servidor de tiempo real (Socket.IO en Render). Sin ella no hay chat ni presencia. */
+export const REALTIME_URL = (import.meta.env.VITE_REALTIME_URL ?? '').trim().replace(/\/+$/, '');
+
 /** Endpoint de la base técnica (TS-00): la API lo lee de Firestore. */
 export const API_DATO_PATH = import.meta.env.VITE_API_DATO_PATH?.trim() || '/api/base-tecnica';
