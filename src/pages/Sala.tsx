@@ -7,6 +7,9 @@ import { Icon } from '../components/ui/Icon';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PantallaCarga } from '../components/ui/PantallaCarga';
 import { useAuth } from '../features/auth/AuthContext';
+import { Chat } from '../features/sala/Chat';
+import { Participantes } from '../features/sala/Participantes';
+import { useAnunciosSala } from '../features/sala/useAnunciosSala';
 import { AvisoExitoSala } from '../features/salas/AvisoExitoSala';
 import { mensajeDeError, normalizarIdSala, type SalaEnVivo } from '../features/tiempo-real/contrato';
 import { EstadoConexion } from '../features/tiempo-real/EstadoConexion';
@@ -19,12 +22,16 @@ export function Sala() {
   const { estado } = useAuth();
   if (estado.status !== 'autenticado') return null;
   const roomId = normalizarIdSala(id);
-  return <InteriorSala key={`${estado.user.uid}:${roomId}`} id={roomId} />;
+  return <InteriorSala key={`${estado.user.uid}:${roomId}`} id={roomId} miUid={estado.user.uid} />;
 }
 
-/** Interior de la sala (US-08): se entra validando el ID en el servidor de tiempo real. */
-function InteriorSala({ id }: { id: string }) {
-  const { estado, conexion, reintentar, reconectar } = useSalaEnVivo(id);
+/**
+ * Interior de la sala: se entra validando el ID en el servidor de tiempo real (US-08) y
+ * tiene tres zonas: chat (US-10/US-11), participantes conectados y datos de la sala.
+ */
+function InteriorSala({ id, miUid }: { id: string; miUid: string }) {
+  const { estado, mensajes, presentes, conexion, enviar, reintentar, reconectar } = useSalaEnVivo(id);
+  const anuncios = useAnunciosSala(mensajes, presentes, miUid, estado.fase === 'lista');
   const { state } = useLocation();
   const titulo = estado.fase === 'lista' ? estado.sala.nombre : 'Sala de estudio';
   usePageTitle(titulo);
@@ -37,7 +44,7 @@ function InteriorSala({ id }: { id: string }) {
   );
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
+    <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
       <PageHeader title={titulo} actions={salirDeLaSala} />
 
       {estado.fase === 'lista' && <EstadoConexion conexion={conexion} onReintentar={reconectar} />}
@@ -88,7 +95,20 @@ function InteriorSala({ id }: { id: string }) {
         )}
       </div>
 
-      {estado.fase === 'lista' && <DatosSala sala={estado.sala} />}
+      {estado.fase === 'lista' && (
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+          <Chat mensajes={mensajes} miUid={miUid} conectado={conexion.estado === 'conectado'} enviar={enviar} />
+          <aside aria-label="Información de la sala" className="space-y-6">
+            <Participantes presentes={presentes} miUid={miUid} anfitrionUid={estado.sala.anfitrionUid} />
+            <DatosSala sala={estado.sala} />
+          </aside>
+        </div>
+      )}
+
+      {/* Mensajes nuevos y entradas o salidas, anunciados sin mover el foco. */}
+      <div role="log" aria-live="polite" aria-relevant="additions" className="sr-only">
+        {anuncios.map((a) => <p key={a.id}>{a.texto}</p>)}
+      </div>
     </div>
   );
 }
@@ -106,7 +126,8 @@ function DatosSala({ sala }: { sala: SalaEnVivo }) {
   }
 
   return (
-    <Card>
+    <Card className="p-5!">
+      <h2 className="mb-3 text-lg font-bold text-ink">Datos de la sala</h2>
       <dl className="space-y-4 text-muted">
         <div>
           <dt className="font-bold text-ink">ID de la sala</dt>
