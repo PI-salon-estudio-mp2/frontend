@@ -1,6 +1,7 @@
-import { Route, Routes } from 'react-router';
+import { Outlet, Route, Routes } from 'react-router';
 import { Layout } from './components/layout/Layout';
 import { RequireAuth } from './features/auth/RequireAuth';
+import { TiempoRealProvider } from './features/tiempo-real/TiempoRealContext';
 import { Accesibilidad } from './pages/Accesibilidad';
 import { CrearSala } from './pages/CrearSala';
 import { EditarSala } from './pages/EditarSala';
@@ -31,9 +32,12 @@ export default function App() {
           <Route path={RUTAS.panel} element={<Panel />} />
           <Route path={RUTAS.perfil} element={<Perfil />} />
           <Route path={RUTAS.crearSala} element={<CrearSala />} />
-          <Route path={RUTAS.unirseSala} element={<UnirseSala />} />
-          <Route path={RUTAS.sala} element={<Sala />} />
           <Route path={RUTAS.editarSala} element={<EditarSala />} />
+          {/* Tiempo real: una sola conexión Socket.IO compartida por unirse y el interior de la sala */}
+          <Route element={<TiempoRealProvider><Outlet /></TiempoRealProvider>}>
+            <Route path={RUTAS.unirseSala} element={<UnirseSala />} />
+            <Route path={RUTAS.sala} element={<Sala />} />
+          </Route>
         </Route>
 
         <Route path={RUTAS.accesibilidad} element={<Accesibilidad />} />

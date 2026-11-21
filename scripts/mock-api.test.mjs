@@ -121,7 +121,7 @@ test('salas: valida el nombre, conserva un ID por solicitud y limita el acceso a
   const simultaneas = await Promise.all([consultar(anfitrion, '', datos), consultar(anfitrion, '', datos)]);
   assert.deepEqual(simultaneas.map(({ status }) => status).sort(), [200, 201]);
   const sala = simultaneas[0].data;
-  assert.match(sala.id, /^[A-Z]{3}-[0-9]{2}[A-Z]$/);
+  assert.match(sala.id, /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{8}$/);
   assert.equal(sala.nombre, 'Física');
   assert.equal(sala.rol, 'administrador');
   assert.deepEqual(simultaneas[1].data, sala);
@@ -149,7 +149,7 @@ test('salas: valida el nombre, conserva un ID por solicitud y limita el acceso a
 
   const otra = await consultar(otro, '', datos);
   assert.equal(otra.status, 201);
-  assert.match(otra.data.id, /^[A-Z]{3}-[0-9]{2}[A-Z]$/);
+  assert.match(otra.data.id, /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{8}$/);
   assert.notEqual(otra.data.id, sala.id);
   const borrar = await fetch(`${base}/api/users/me`, {
     method: 'DELETE',

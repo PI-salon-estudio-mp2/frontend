@@ -19,6 +19,18 @@ vi.mock('../src/features/auth/AuthContext', () => {
   return { useAuth: () => contexto };
 });
 vi.mock('../src/config/app', () => ({ API_URL: 'http://api.test', APP_NAME: 'Salón de Estudio' }));
+// El interior de la sala entra por el servidor de tiempo real (Socket.IO): aquí se simula esa conexión.
+vi.mock('../src/features/tiempo-real/useSalaEnVivo', () => ({
+  useSalaEnVivo: (id: string) => ({
+    estado: { fase: 'lista', sala: { id, nombre: 'Álgebra', anfitrionUid: 'ana', rol: 'administrador' } },
+    mensajes: [],
+    presentes: [],
+    conexion: { estado: 'conectado' },
+    enviar: async () => ({ ok: true }),
+    reintentar: () => undefined,
+    reconectar: () => undefined,
+  }),
+}));
 
 const sala = { id: 'AZA-04K', nombre: 'Álgebra', rol: 'administrador' };
 const pedir = vi.fn<(url: string, opciones: RequestInit) => Promise<Response>>();
@@ -86,7 +98,6 @@ it('mantiene la solicitud al reintentar y abre el interior como administrador al
   let terminarCreacion!: (res: Response) => void;
   pedir.mockRejectedValueOnce(new Error('Respuesta perdida'))
     .mockImplementationOnce(() => new Promise((resolve) => { terminarCreacion = resolve; }))
-    .mockResolvedValueOnce(respuesta(sala))
     .mockResolvedValueOnce(respuesta([sala]));
 
   montar(RUTAS.crearSala);
@@ -106,14 +117,18 @@ it('mantiene la solicitud al reintentar y abre el interior como administrador al
 
   terminarCreacion(respuesta(sala, 201));
   await screen.findByRole('heading', { name: sala.nombre });
-  const confirmacion = within(screen.getByRole('status'));
+  // La sala tiene varias regiones de estado (conexión, copia del ID y el aviso): se busca la del aviso.
+  const avisoCreada = screen.getAllByRole('status').find((region) => region.textContent?.includes('Sala creada'));
+  expect(avisoCreada).toBeTruthy();
+  const confirmacion = within(avisoCreada!);
   expect(confirmacion.getByText('Sala creada')).toBeTruthy();
   expect(confirmacion.getByText('Comparte el ID para que tu grupo pueda entrar.')).toBeTruthy();
   expect(screen.getByText('Administrador')).toBeTruthy();
   expect(screen.getByText(sala.id)).toBeTruthy();
-  expect(pedir.mock.calls[2][0]).toBe(`http://api.test/api/rooms/${sala.id}`);
+  // El interior ya no consulta la API: los datos llegan por Socket.IO (room:join).
+  expect(pedir).toHaveBeenCalledTimes(2);
 
-  fireEvent.click(screen.getByRole('link', { name: 'Volver a Mis salas' }));
+  fireEvent.click(screen.getByRole('link', { name: 'Salir de la sala' }));
   await screen.findByRole('heading', { name: sala.nombre });
   expect(screen.getByText(sala.id)).toBeTruthy();
   const entrar = screen.getByRole('link', { name: 'Entrar a Álgebra' });
