@@ -74,6 +74,11 @@ export interface EventosCliente {
     datos: { roomId: string; antesDe: string; limite: number },
     ack: (r: Respuesta<HistorialAnterior>) => void,
   ) => void;
+  /**
+   * US-07 · El anfitrión avisa que ya eliminó la sala con la API. El servidor comprueba en
+   * Firestore que no existe y emite room:deleted a quienes estaban dentro (BE, Sprint 3).
+   */
+  'room:closed': (datos: { roomId: string }, ack: (r: Respuesta<{ salaId: string }>) => void) => void;
 }
 
 // ---------- ID de la sala (mismas reglas que backend-api y backend-realtime) ----------

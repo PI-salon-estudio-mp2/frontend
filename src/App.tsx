@@ -28,13 +28,13 @@ export default function App() {
         <Route path={RUTAS.elegirUsername} element={<ElegirUsername />} />
 
         {/* Privadas: exigen sesión iniciada */}
+        {/* Tiempo real: una sola conexión Socket.IO por sesión; se abre solo cuando una pantalla la usa. */}
         <Route element={<RequireAuth />}>
-          <Route path={RUTAS.panel} element={<Panel />} />
-          <Route path={RUTAS.perfil} element={<Perfil />} />
-          <Route path={RUTAS.crearSala} element={<CrearSala />} />
-          <Route path={RUTAS.editarSala} element={<EditarSala />} />
-          {/* Tiempo real: una sola conexión Socket.IO compartida por unirse y el interior de la sala */}
           <Route element={<TiempoRealProvider><Outlet /></TiempoRealProvider>}>
+            <Route path={RUTAS.panel} element={<Panel />} />
+            <Route path={RUTAS.perfil} element={<Perfil />} />
+            <Route path={RUTAS.crearSala} element={<CrearSala />} />
+            <Route path={RUTAS.editarSala} element={<EditarSala />} />
             <Route path={RUTAS.unirseSala} element={<UnirseSala />} />
             <Route path={RUTAS.sala} element={<Sala />} />
           </Route>
