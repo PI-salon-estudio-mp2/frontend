@@ -4,10 +4,13 @@ import { Button, ButtonLink } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { rutaEditarSala, rutaSala } from '../../routes/rutas';
 import type { SalaAdministrada } from './api';
+import { EliminarSala } from './EliminarSala';
 
-export function TarjetaSala({ sala, notificarCopia }: {
+export function TarjetaSala({ sala, notificarCopia, onEliminada }: {
   sala: SalaAdministrada;
   notificarCopia: (id: string | null) => void;
+  /** US-07 · El panel quita la sala de la lista apenas la API confirma el borrado. */
+  onEliminada?: (sala: SalaAdministrada) => void;
 }) {
   const [errorCopia, setErrorCopia] = useState(false);
   const copiando = useRef(false);
@@ -46,6 +49,7 @@ export function TarjetaSala({ sala, notificarCopia }: {
         <ButtonLink to={rutaEditarSala(sala.id)} variant="secondary" size="sm" aria-label={`Editar nombre de ${sala.nombre}`}>
           Editar nombre
         </ButtonLink>
+        {onEliminada && <EliminarSala sala={sala} onEliminada={() => onEliminada(sala)} />}
       </div>
       <div role="alert" aria-atomic="true">
         {errorCopia && (
