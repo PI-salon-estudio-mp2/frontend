@@ -34,6 +34,16 @@ export interface SalaUnida {
   historial: Mensaje[];
 }
 
+/** Cuántos mensajes trae el servidor por vez (los últimos al entrar y cada «Cargar anteriores»). */
+export const LIMITE_HISTORIAL = 50;
+
+/** Respuesta de history:before (US-11): una página de mensajes más viejos. */
+export interface HistorialAnterior {
+  mensajes: Mensaje[];
+  /** true si todavía quedan mensajes más viejos por cargar. */
+  hayMas: boolean;
+}
+
 export interface Presencia {
   salaId: string;
   presentes: UsuarioConectado[];
@@ -59,6 +69,11 @@ export interface EventosCliente {
   'room:join': (datos: { roomId: string }, ack: (r: Respuesta<SalaUnida>) => void) => void;
   'room:leave': (datos: { roomId: string }, ack: (r: Respuesta<{ salaId: string }>) => void) => void;
   'message:send': (datos: { roomId: string; texto: string }, ack: (r: Respuesta<Mensaje>) => void) => void;
+  /** Mensajes anteriores a `antesDe` (ISO), del más viejo al más nuevo (BE, Sprint 3 · US-11). */
+  'history:before': (
+    datos: { roomId: string; antesDe: string; limite: number },
+    ack: (r: Respuesta<HistorialAnterior>) => void,
+  ) => void;
 }
 
 // ---------- ID de la sala (mismas reglas que backend-api y backend-realtime) ----------
@@ -122,6 +137,14 @@ export function leerSalaUnida(valor: unknown): SalaUnida | null {
     historial: Array.isArray(valor.historial)
       ? valor.historial.map(leerMensaje).filter((m): m is Mensaje => m !== null)
       : [],
+  };
+}
+
+export function leerHistorialAnterior(valor: unknown): HistorialAnterior | null {
+  if (!esObjeto(valor) || !Array.isArray(valor.mensajes)) return null;
+  return {
+    mensajes: valor.mensajes.map(leerMensaje).filter((m): m is Mensaje => m !== null),
+    hayMas: valor.hayMas === true,
   };
 }
 

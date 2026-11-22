@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  leerHistorialAnterior,
   leerMensaje,
+  LIMITE_HISTORIAL,
   mezclarMensajes,
   leerUsuario,
   MENSAJES_TIEMPO_REAL,
@@ -19,6 +21,15 @@ export type EstadoSala =
   /** El anfitrión eliminó la sala mientras estábamos dentro. */
   | { fase: 'eliminada' };
 
+/** Estado de «Cargar mensajes anteriores» (US-11). */
+export interface EstadoAnteriores {
+  hayMas: boolean;
+  cargando: boolean;
+  error?: string;
+}
+
+const ERROR_ANTERIORES = 'No pudimos cargar los mensajes anteriores. Inténtalo de nuevo.';
+
 const sinConexion: ErrorTiempoReal = {
   code: 'DESCONECTADO',
   message: 'Sin conexión con el servidor: tu mensaje no se envió. Inténtalo de nuevo cuando vuelva la conexión.',
@@ -34,7 +45,10 @@ export function useSalaEnVivo(roomId: string) {
   const [mensajes, setMensajes] = useState<Mensaje[]>([]);
   const [presentes, setPresentes] = useState<UsuarioConectado[]>([]);
   const [intento, setIntento] = useState(0);
+  const [anteriores, setAnteriores] = useState<EstadoAnteriores>({ hayMas: false, cargando: false });
   const unido = useRef(false);
+  const mensajesActuales = useRef<Mensaje[]>([]);
+  useEffect(() => { mensajesActuales.current = mensajes; }, [mensajes]);
 
   useEffect(() => {
     let vigente = true;
@@ -49,10 +63,15 @@ export function useSalaEnVivo(roomId: string) {
       const respuesta = await unirse(roomId);
       if (!vigente) return;
       if (respuesta.ok) {
+        const primeraVez = !unido.current;
         unido.current = true;
         setEstado({ fase: 'lista', sala: respuesta.data.sala });
         setPresentes(respuesta.data.presentes);
         setMensajes((actuales) => mezclarMensajes(actuales, respuesta.data.historial));
+        // Si llegó la página completa, puede haber mensajes más viejos (historial extenso).
+        if (primeraVez) {
+          setAnteriores({ hayMas: respuesta.data.historial.length >= LIMITE_HISTORIAL, cargando: false });
+        }
         return;
       }
       // Si ya estábamos dentro y solo falló una reconexión, se conserva la sala en pantalla.
@@ -100,10 +119,39 @@ export function useSalaEnVivo(roomId: string) {
       if (respuesta.ok) {
         const mensaje = leerMensaje(respuesta.data);
         if (mensaje) setMensajes((actuales) => mezclarMensajes(actuales, [mensaje]));
+      } else if (respuesta.error.code === 'ROOM_NOT_FOUND') {
+        // El anfitrión eliminó la sala mientras estábamos dentro (US-07).
+        setEstado({ fase: 'eliminada' });
       }
       return respuesta;
     } catch {
       return { ok: false, error: { code: 'TIMEOUT', message: MENSAJES_TIEMPO_REAL.TIMEOUT } };
+    }
+  }, [activar, roomId]);
+
+  /** US-11 · Trae la página anterior al mensaje más viejo que ya está en pantalla. */
+  const cargarAnteriores = useCallback(async () => {
+    const primero = mensajesActuales.current[0];
+    const socket = activar();
+    if (!primero || !socket) return;
+    if (!socket.connected) {
+      setAnteriores((a) => ({ ...a, error: 'Sin conexión con el servidor: no pudimos cargar los mensajes anteriores.' }));
+      return;
+    }
+    setAnteriores((a) => ({ ...a, cargando: true, error: undefined }));
+    try {
+      const respuesta = await socket
+        .timeout(ESPERA_RESPUESTA_MS)
+        .emitWithAck('history:before', { roomId, antesDe: primero.creadoEn, limite: LIMITE_HISTORIAL });
+      const pagina = respuesta.ok ? leerHistorialAnterior(respuesta.data) : null;
+      if (!pagina) {
+        setAnteriores((a) => ({ ...a, cargando: false, error: ERROR_ANTERIORES }));
+        return;
+      }
+      setMensajes((actuales) => mezclarMensajes(actuales, pagina.mensajes));
+      setAnteriores({ hayMas: pagina.hayMas, cargando: false });
+    } catch {
+      setAnteriores((a) => ({ ...a, cargando: false, error: ERROR_ANTERIORES }));
     }
   }, [activar, roomId]);
 
@@ -112,5 +160,5 @@ export function useSalaEnVivo(roomId: string) {
     setIntento((n) => n + 1);
   }, []);
 
-  return { estado, mensajes, presentes, conexion, enviar, reintentar, reconectar };
+  return { estado, mensajes, presentes, conexion, enviar, reintentar, reconectar, anteriores, cargarAnteriores };
 }
