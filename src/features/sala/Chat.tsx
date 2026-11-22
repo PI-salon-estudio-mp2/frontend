@@ -2,7 +2,8 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent, ty
 import { Button } from '../../components/ui/Button';
 import { Icon } from '../../components/ui/Icon';
 import { Spinner } from '../../components/ui/Spinner';
-import { mensajeDeError, type Mensaje, type Respuesta } from '../tiempo-real/contrato';
+import { LIMITE_HISTORIAL, mensajeDeError, type Mensaje, type Respuesta } from '../tiempo-real/contrato';
+import type { EstadoAnteriores } from '../tiempo-real/useSalaEnVivo';
 import { fechaCompleta, horaMensaje } from './formato';
 
 export const MAX_MENSAJE = 1000;
@@ -14,6 +15,9 @@ interface ChatProps {
   miUid: string;
   conectado: boolean;
   enviar: (texto: string) => Promise<Respuesta<Mensaje>>;
+  /** US-11 · «Cargar mensajes anteriores» cuando el historial es extenso. */
+  anteriores?: EstadoAnteriores;
+  onCargarAnteriores?: () => void;
 }
 
 /**
@@ -21,7 +25,7 @@ interface ChatProps {
  * mensajes vacíos. Baja solo al llegar mensajes, salvo que la persona esté leyendo el
  * historial: en ese caso aparece «Mensajes nuevos» y no se le mueve la lectura.
  */
-export function Chat({ mensajes, miUid, conectado, enviar }: ChatProps) {
+export function Chat({ mensajes, miUid, conectado, enviar, anteriores, onCargarAnteriores }: ChatProps) {
   const idTitulo = useId();
   const idCampo = useId();
   const idAyuda = useId();
@@ -29,7 +33,9 @@ export function Chat({ mensajes, miUid, conectado, enviar }: ChatProps) {
   const lista = useRef<HTMLDivElement>(null);
   const campo = useRef<HTMLTextAreaElement>(null);
   const pegadoAbajo = useRef(true);
-  const cantidadAnterior = useRef(0);
+  const primerId = useRef<string | undefined>(undefined);
+  const ultimoId = useRef<string | undefined>(undefined);
+  const alturaAnterior = useRef(0);
   const [nuevosSinLeer, setNuevosSinLeer] = useState(0);
   const [texto, setTexto] = useState('');
   const [enviando, setEnviando] = useState(false);
@@ -46,19 +52,32 @@ export function Chat({ mensajes, miUid, conectado, enviar }: ChatProps) {
   function alDesplazar() {
     const el = lista.current;
     if (!el) return;
+    alturaAnterior.current = el.scrollHeight;
     pegadoAbajo.current = el.scrollHeight - el.scrollTop - el.clientHeight < UMBRAL_ABAJO_PX;
     if (pegadoAbajo.current) setNuevosSinLeer(0);
   }
 
   // Auto-scroll al llegar mensajes, sin interrumpir a quien lee mensajes anteriores.
   useLayoutEffect(() => {
-    const llegaron = mensajes.length - cantidadAnterior.current;
-    const primeraCarga = cantidadAnterior.current === 0;
-    cantidadAnterior.current = mensajes.length;
-    if (llegaron <= 0) return;
-    const ultimoEsMio = mensajes[mensajes.length - 1]?.autorUid === miUid;
-    if (primeraCarga || pegadoAbajo.current || ultimoEsMio) bajarAlFinal();
-    else setNuevosSinLeer((n) => n + llegaron);
+    const el = lista.current;
+    const primero = mensajes[0]?.id;
+    const ultimo = mensajes[mensajes.length - 1]?.id;
+    const habiaMensajes = ultimoId.current !== undefined;
+
+    if (habiaMensajes && ultimo === ultimoId.current && primero !== primerId.current) {
+      // Llegaron mensajes ANTERIORES arriba (US-11): se conserva lo que la persona estaba viendo.
+      if (el) el.scrollTop += el.scrollHeight - alturaAnterior.current;
+    } else if (ultimo !== undefined && ultimo !== ultimoId.current) {
+      const indice = habiaMensajes ? mensajes.findIndex((m) => m.id === ultimoId.current) : -1;
+      const llegaron = indice === -1 ? mensajes.length : mensajes.length - 1 - indice;
+      const ultimoEsMio = mensajes[mensajes.length - 1]?.autorUid === miUid;
+      if (!habiaMensajes || pegadoAbajo.current || ultimoEsMio) bajarAlFinal();
+      else setNuevosSinLeer((n) => n + llegaron);
+    }
+
+    primerId.current = primero;
+    ultimoId.current = ultimo;
+    alturaAnterior.current = el?.scrollHeight ?? 0;
   }, [mensajes, miUid]);
 
   useEffect(() => { if (conectado) setError(undefined); }, [conectado]);
@@ -115,9 +134,12 @@ export function Chat({ mensajes, miUid, conectado, enviar }: ChatProps) {
               </div>
             </div>
           ) : (
-            <ol className="space-y-3">
-              {mensajes.map((m) => <ItemMensaje key={m.id} mensaje={m} mio={m.autorUid === miUid} />)}
-            </ol>
+            <>
+              <InicioHistorial anteriores={anteriores} total={mensajes.length} onCargar={onCargarAnteriores} />
+              <ol className="space-y-3">
+                {mensajes.map((m) => <ItemMensaje key={m.id} mensaje={m} mio={m.autorUid === miUid} />)}
+              </ol>
+            </>
           )}
         </div>
         {nuevosSinLeer > 0 && (
@@ -164,6 +186,30 @@ export function Chat({ mensajes, miUid, conectado, enviar }: ChatProps) {
         </div>
       </form>
     </section>
+  );
+}
+
+/** Arriba del chat: «Cargar mensajes anteriores» o el aviso de que es el inicio de la conversación. */
+function InicioHistorial({ anteriores, total, onCargar }: {
+  anteriores?: EstadoAnteriores;
+  total: number;
+  onCargar?: () => void;
+}) {
+  if (!anteriores) return null;
+  return (
+    <div className="mb-4 flex flex-col items-center gap-2 text-center text-sm text-muted">
+      {anteriores.hayMas ? (
+        <Button variant="secondary" size="sm" aria-disabled={anteriores.cargando} onClick={() => { if (!anteriores.cargando) onCargar?.(); }}>
+          {anteriores.cargando ? <Spinner className="size-4 text-current" /> : <Icon name="refresh" className="size-4" />}
+          {anteriores.cargando ? 'Cargando mensajes anteriores…' : 'Cargar mensajes anteriores'}
+        </Button>
+      ) : (
+        total >= LIMITE_HISTORIAL && <p>Este es el inicio de la conversación.</p>
+      )}
+      <p role="status" aria-atomic="true" className={anteriores.error ? 'font-bold text-danger-700' : 'sr-only'}>
+        {anteriores.error ?? (anteriores.cargando ? 'Cargando mensajes anteriores…' : '')}
+      </p>
+    </div>
   );
 }
 

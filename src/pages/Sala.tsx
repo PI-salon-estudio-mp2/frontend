@@ -30,7 +30,7 @@ export function Sala() {
  * tiene tres zonas: chat (US-10/US-11), participantes conectados y datos de la sala.
  */
 function InteriorSala({ id, miUid }: { id: string; miUid: string }) {
-  const { estado, mensajes, presentes, conexion, enviar, reintentar, reconectar } = useSalaEnVivo(id);
+  const { estado, mensajes, presentes, conexion, enviar, reintentar, reconectar, anteriores, cargarAnteriores } = useSalaEnVivo(id);
   const anuncios = useAnunciosSala(mensajes, presentes, miUid, estado.fase === 'lista');
   const { state } = useLocation();
   const titulo = estado.fase === 'lista' ? estado.sala.nombre : 'Sala de estudio';
@@ -97,7 +97,14 @@ function InteriorSala({ id, miUid }: { id: string; miUid: string }) {
 
       {estado.fase === 'lista' && (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-          <Chat mensajes={mensajes} miUid={miUid} conectado={conexion.estado === 'conectado'} enviar={enviar} />
+          <Chat
+            mensajes={mensajes}
+            miUid={miUid}
+            conectado={conexion.estado === 'conectado'}
+            enviar={enviar}
+            anteriores={anteriores}
+            onCargarAnteriores={() => void cargarAnteriores()}
+          />
           <aside aria-label="Información de la sala" className="space-y-6">
             <Participantes presentes={presentes} miUid={miUid} anfitrionUid={estado.sala.anfitrionUid} />
             <DatosSala sala={estado.sala} />
