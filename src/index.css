@@ -88,6 +88,13 @@
     scroll-padding-top: 5rem;
   }
 
+  /* Tailwind 4 quita la «mano» de los botones: se devuelve para todo lo que se puede pulsar. */
+  button:not(:disabled):not([aria-disabled='true']),
+  [role='button']:not([aria-disabled='true']),
+  summary {
+    cursor: pointer;
+  }
+
   body {
     @apply bg-canvas font-sans text-ink antialiased;
     font-size: 1rem;
