@@ -46,15 +46,27 @@ function PanelSalas({ saludo }: { saludo: string }) {
       ? estadoNavegacion.salaRenombrada
       : undefined;
   });
+  // US-07 · Llegan desde el interior de la sala: el anfitrión la eliminó, o la eliminaron con nosotros dentro.
+  const [salaEliminada] = useState(() => textoDelEstado(location.state, 'salaEliminada'));
+  const [salaCerrada] = useState(() => textoDelEstado(location.state, 'salaCerradaPorAnfitrion'));
   const limpiado = useRef(false);
   useEffect(() => {
-    if ((mostrarBienvenida || salaRenombrada) && !limpiado.current) {
+    if ((mostrarBienvenida || salaRenombrada || salaEliminada || salaCerrada) && !limpiado.current) {
       limpiado.current = true;
       navigate(location.pathname, { replace: true, state: null });
     }
-  }, [mostrarBienvenida, salaRenombrada, navigate, location.pathname]);
+  }, [mostrarBienvenida, salaRenombrada, salaEliminada, salaCerrada, navigate, location.pathname]);
 
-  const vacio = estado.status === 'exito' && estado.datos.length === 0;
+  // Las salas eliminadas desde el panel desaparecen de inmediato, sin volver a cargar la lista.
+  const [eliminadas, setEliminadas] = useState<{ ids: string[]; ultima?: string; version: number }>({ ids: [], version: 0 });
+  const salas = estado.status === 'exito' ? estado.datos.filter((s) => !eliminadas.ids.includes(s.id)) : [];
+  function alEliminar(sala: { id: string; nombre: string }) {
+    setCopia((a) => ({ id: null, version: a.version }));
+    setEliminadas((a) => ({ ids: [...a.ids, sala.id], ultima: sala.nombre, version: a.version + 1 }));
+  }
+  const nombreEliminada = eliminadas.ultima ?? salaEliminada;
+
+  const vacio = estado.status === 'exito' && salas.length === 0;
   // Un solo botón principal por pantalla: con salas, «Entrar» (en cada tarjeta) es el principal
   // y «Crear sala» del encabezado es secundario; sin salas, «Crear mi primera sala» es el único.
   const accionCrear = (variant: 'primary' | 'secondary', texto: string) => (
@@ -69,10 +81,15 @@ function PanelSalas({ saludo }: { saludo: string }) {
       {saludo && <p className="mb-1 text-lg text-muted">Hola, {saludo}</p>}
       <PageHeader title="Mis salas" actions={vacio ? undefined : accionCrear('secondary', 'Crear sala')} />
 
-      <div role="status" className={mostrarBienvenida ? 'mb-6' : undefined}>
+      <div role="status" className={mostrarBienvenida || salaCerrada ? 'mb-6' : undefined}>
         {mostrarBienvenida && (
           <Alert tone="success" title="¡Bienvenido a Salón de Estudio!">
             Tu cuenta está lista.
+          </Alert>
+        )}
+        {salaCerrada && (
+          <Alert tone="warning" title={`El anfitrión eliminó la sala «${salaCerrada}»`}>
+            Te trajimos de vuelta a «Mis salas». Los mensajes de esa sala ya no están disponibles.
           </Alert>
         )}
       </div>
@@ -80,11 +97,14 @@ function PanelSalas({ saludo }: { saludo: string }) {
         aviso={copia.id ? {
           titulo: 'ID copiado',
           mensaje: `Copiaste el código ${copia.id}. Compártelo con tu grupo para invitarlos.`,
+        } : nombreEliminada ? {
+          titulo: 'Sala eliminada',
+          mensaje: `Se eliminó «${nombreEliminada}» con todos sus mensajes.`,
         } : salaRenombrada ? {
           titulo: 'Nombre actualizado',
           mensaje: `La sala ahora se llama «${salaRenombrada}».`,
         } : undefined}
-        version={copia.version}
+        version={copia.version + eliminadas.version}
       />
 
       {estado.status === 'cargando' && <PantallaCarga texto="Cargando salas…" />}
@@ -110,11 +130,18 @@ function PanelSalas({ saludo }: { saludo: string }) {
         </Card>
       ) : (
         <ul role="list" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {estado.datos.map((sala) => (
-            <li key={sala.id}><TarjetaSala sala={sala} notificarCopia={notificarCopia} /></li>
+          {salas.map((sala) => (
+            <li key={sala.id}><TarjetaSala sala={sala} notificarCopia={notificarCopia} onEliminada={alEliminar} /></li>
           ))}
         </ul>
       ))}
     </div>
   );
+}
+
+/** Lee un texto del estado de navegación (por ejemplo, el nombre de la sala eliminada). */
+function textoDelEstado(estado: unknown, clave: string): string | undefined {
+  if (typeof estado !== 'object' || estado === null || !(clave in estado)) return undefined;
+  const valor = (estado as Record<string, unknown>)[clave];
+  return typeof valor === 'string' ? valor : undefined;
 }

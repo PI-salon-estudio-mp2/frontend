@@ -59,6 +59,18 @@ export function actualizarSala(id: string, nombre: string, token: string, signal
   });
 }
 
+/** DELETE /api/rooms/:id — borra la sala y sus mensajes; solo el anfitrión (403 si no lo es). Responde 204. */
+export function eliminarSala(id: string, token: string, signal?: AbortSignal) {
+  return apiRequest(`${RUTA_SALAS}/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    token,
+    signal,
+    parse: (json) => {
+      if (json !== undefined) throw new ApiError('format', 'No pudimos confirmar que la sala se eliminó.');
+    },
+  });
+}
+
 export function crearSala(nombre: string, solicitudId: string, token: string, signal: AbortSignal) {
   return apiRequest(RUTA_SALAS, {
     method: 'POST',

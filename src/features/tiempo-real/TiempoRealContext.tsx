@@ -1,5 +1,6 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { io, type Socket } from 'socket.io-client';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { io } from 'socket.io-client';
+import { TiempoRealContext, type Conexion, type SocketApp, type TiempoRealValue } from './contexto';
 import { REALTIME_URL } from '../../config/app';
 import { auth } from '../../lib/firebase';
 import { useAuth } from '../auth/AuthContext';
@@ -7,37 +8,12 @@ import {
   leerSalaUnida,
   MENSAJES_TIEMPO_REAL,
   type ErrorTiempoReal,
-  type EventosCliente,
-  type EventosServidor,
   type Respuesta,
   type SalaUnida,
 } from './contrato';
 
-export type SocketApp = Socket<EventosServidor, EventosCliente>;
-
-/**
- * conectando: primer intento (Render puede tardar ~1 min en despertar).
- * reconectando: se perdió la conexión y Socket.IO reintenta solo.
- * error: el servidor rechazó la conexión (sin sesión, sin perfil o sin configurar).
- */
-export type EstadoConexion = 'inactivo' | 'conectando' | 'conectado' | 'reconectando' | 'error';
-
-export interface Conexion {
-  estado: EstadoConexion;
-  error?: ErrorTiempoReal;
-}
-
-interface TiempoRealValue {
-  conexion: Conexion;
-  /** Devuelve el socket y lo conecta si aún no lo está (null si falta VITE_REALTIME_URL). */
-  activar: () => SocketApp | null;
-  /** Espera la conexión (hasta ~70 s) y entra a la sala validando su ID en el servidor. */
-  unirse: (roomId: string) => Promise<Respuesta<SalaUnida>>;
-  /** Vuelve a intentar la conexión después de un error. */
-  reconectar: () => void;
-}
-
-const TiempoRealContext = createContext<TiempoRealValue | null>(null);
+export type { Conexion, EstadoConexion, SocketApp, TiempoRealValue } from './contexto';
+export { useTiempoRealOpcional } from './contexto';
 
 /** Primer arranque de Render (plan gratuito) más un margen. */
 const ESPERA_CONEXION_MS = 70_000;
@@ -185,7 +161,19 @@ export function TiempoRealProvider({ children }: { children: ReactNode }) {
     }
   }, [activar]);
 
-  const valor = useMemo(() => ({ conexion, activar, unirse, reconectar }), [conexion, activar, unirse, reconectar]);
+  const avisarSalaEliminada = useCallback((roomId: string) => {
+    const socket = activar();
+    if (!socket) return;
+    // Mejor esfuerzo: si falla, los participantes igual se enteran al intentar enviar un mensaje.
+    void esperarConexion(socket)
+      .then(() => socket.timeout(ESPERA_RESPUESTA_MS).emitWithAck('room:closed', { roomId }))
+      .catch(() => undefined);
+  }, [activar]);
+
+  const valor = useMemo(
+    () => ({ conexion, activar, unirse, reconectar, avisarSalaEliminada }),
+    [conexion, activar, unirse, reconectar, avisarSalaEliminada],
+  );
   return <TiempoRealContext.Provider value={valor}>{children}</TiempoRealContext.Provider>;
 }
 

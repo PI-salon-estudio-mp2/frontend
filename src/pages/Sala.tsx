@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useLocation, useParams } from 'react-router';
+import { useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router';
 import { Alert } from '../components/ui/Alert';
 import { Button, ButtonLink } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -11,11 +11,12 @@ import { Chat } from '../features/sala/Chat';
 import { Participantes } from '../features/sala/Participantes';
 import { useAnunciosSala } from '../features/sala/useAnunciosSala';
 import { AvisoExitoSala } from '../features/salas/AvisoExitoSala';
+import { EliminarSala } from '../features/salas/EliminarSala';
 import { mensajeDeError, normalizarIdSala, type SalaEnVivo } from '../features/tiempo-real/contrato';
 import { EstadoConexion } from '../features/tiempo-real/EstadoConexion';
 import { useSalaEnVivo } from '../features/tiempo-real/useSalaEnVivo';
 import { usePageTitle } from '../hooks/usePageTitle';
-import { RUTAS } from '../routes/rutas';
+import { RUTAS, rutaEditarSala } from '../routes/rutas';
 
 export function Sala() {
   const { id = '' } = useParams();
@@ -33,19 +34,45 @@ function InteriorSala({ id, miUid }: { id: string; miUid: string }) {
   const { estado, mensajes, presentes, conexion, enviar, reintentar, reconectar, anteriores, cargarAnteriores } = useSalaEnVivo(id);
   const anuncios = useAnunciosSala(mensajes, presentes, miUid, estado.fase === 'lista');
   const { state } = useLocation();
+  const navigate = useNavigate();
   const titulo = estado.fase === 'lista' ? estado.sala.nombre : 'Sala de estudio';
   usePageTitle(titulo);
 
-  const salirDeLaSala = (
-    <ButtonLink variant="secondary" to={RUTAS.panel}>
-      <Icon name="arrowLeft" />
-      Salir de la sala
-    </ButtonLink>
+  // US-07 · Si el anfitrión elimina la sala con nosotros dentro, volvemos al panel con un aviso.
+  const ultimoNombre = useRef(titulo);
+  if (estado.fase === 'lista') ultimoNombre.current = estado.sala.nombre;
+  useEffect(() => {
+    if (estado.fase === 'eliminada') {
+      navigate(RUTAS.panel, { replace: true, state: { salaCerradaPorAnfitrion: ultimoNombre.current } });
+    }
+  }, [estado.fase, navigate]);
+
+  const esAnfitrion = estado.fase === 'lista' && estado.sala.rol === 'administrador';
+  const acciones = (
+    <>
+      {/* Editar y eliminar solo los ve el anfitrión; a los invitados la API además les responde 403. */}
+      {esAnfitrion && (
+        <>
+          <ButtonLink variant="secondary" to={rutaEditarSala(id)} aria-label={`Editar nombre de ${titulo}`}>
+            Editar nombre
+          </ButtonLink>
+          <EliminarSala
+            size="md"
+            sala={{ id, nombre: titulo }}
+            onEliminada={(nombre) => navigate(RUTAS.panel, { replace: true, state: { salaEliminada: nombre } })}
+          />
+        </>
+      )}
+      <ButtonLink variant="secondary" to={RUTAS.panel}>
+        <Icon name="arrowLeft" />
+        Salir de la sala
+      </ButtonLink>
+    </>
   );
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
-      <PageHeader title={titulo} actions={salirDeLaSala} />
+      <PageHeader title={titulo} actions={acciones} />
 
       {estado.fase === 'lista' && <EstadoConexion conexion={conexion} onReintentar={reconectar} />}
       <AvisoExitoSala
