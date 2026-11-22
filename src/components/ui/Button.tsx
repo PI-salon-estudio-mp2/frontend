@@ -1,11 +1,12 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import { Link, type LinkProps } from 'react-router';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'dangerSecondary';
 export type ButtonSize = 'md' | 'sm';
 
 const BASE =
-  'inline-flex items-center justify-center gap-2 rounded-xl font-bold whitespace-nowrap ' +
+  // cursor-pointer: Tailwind 4 deja los <button> con el cursor normal; los enlaces ya tienen la mano.
+  'inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl font-bold whitespace-nowrap ' +
   'transition-[color,background-color] duration-150 disabled:cursor-not-allowed disabled:opacity-60 ' +
   'aria-disabled:cursor-not-allowed aria-disabled:opacity-60';
   
@@ -15,6 +16,9 @@ const VARIANTS: Record<ButtonVariant, string> = {
     'bg-surface text-primary-700 ring-1 ring-inset ring-primary-300 hover:bg-primary-50 active:bg-primary-100',
   ghost: 'text-ink hover:bg-primary-50 active:bg-primary-100',
   danger: 'bg-danger-700 text-white shadow-sm hover:bg-danger-600',
+  /** Acción destructiva secundaria (por ejemplo «Eliminar» en una tarjeta): contorno rojo. */
+  dangerSecondary:
+    'bg-surface text-danger-700 ring-1 ring-inset ring-danger-border hover:bg-danger-50 active:bg-danger-50',
 };
 
 const SIZES: Record<ButtonSize, string> = {

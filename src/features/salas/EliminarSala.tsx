@@ -64,9 +64,8 @@ export function EliminarSala({ sala, onEliminada, size = 'sm' }: EliminarSalaPro
   return (
     <>
       <Button
-        variant="secondary"
+        variant="dangerSecondary"
         size={size}
-        className="text-danger-700 ring-danger-border hover:bg-danger-50"
         aria-label={`Eliminar la sala ${sala.nombre}`}
         onClick={(event) => {
           disparador.current = event.currentTarget;
