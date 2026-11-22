@@ -126,13 +126,13 @@ it('mantiene la solicitud al reintentar y abre el interior como administrador al
   expect(confirmacion.getByText('Sala creada')).toBeTruthy();
   expect(confirmacion.getByText('Comparte el ID para que tu grupo pueda entrar.')).toBeTruthy();
   expect(screen.getByText('Administrador')).toBeTruthy();
-  expect(screen.getByText(sala.id)).toBeTruthy();
+  expect(screen.getByText(sala.id, { selector: '.select-all' })).toBeTruthy();
   // El interior ya no consulta la API: los datos llegan por Socket.IO (room:join).
   expect(pedir).toHaveBeenCalledTimes(2);
 
   fireEvent.click(screen.getByRole('link', { name: 'Salir de la sala' }));
   await screen.findByRole('heading', { name: sala.nombre });
-  expect(screen.getByText(sala.id)).toBeTruthy();
+  expect(screen.getByText(sala.id, { selector: '.select-all' })).toBeTruthy();
   const entrar = screen.getByRole('link', { name: 'Entrar a Álgebra' });
   expect(entrar.getAttribute('href')).toBe(rutaSala(sala.id));
   // Con salas, «Entrar» es el único botón principal; «Crear sala» del encabezado es secundario.
