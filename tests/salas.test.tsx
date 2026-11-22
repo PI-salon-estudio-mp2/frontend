@@ -29,6 +29,8 @@ vi.mock('../src/features/tiempo-real/useSalaEnVivo', () => ({
     enviar: async () => ({ ok: true }),
     reintentar: () => undefined,
     reconectar: () => undefined,
+    anteriores: { hayMas: false, cargando: false },
+    cargarAnteriores: async () => undefined,
   }),
 }));
 
