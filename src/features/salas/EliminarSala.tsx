@@ -50,11 +50,15 @@ export function EliminarSala({ sala, onEliminada, size = 'sm' }: EliminarSalaPro
       onEliminada(sala.nombre);
     } catch (e) {
       const fallo = toApiError(e);
-      setError(fallo.status === 403
-        ? 'Solo el anfitrión puede eliminar esta sala.'
-        : fallo.status === 404
-          ? 'Esta sala ya no existe. Vuelve a «Mis salas» para ver tu lista actualizada.'
-          : `No pudimos eliminar la sala. ${fallo.message}`);
+      // Cada mensaje dice qué pasó y qué hacer (heurística 9, #37).
+      setError(
+        fallo.status === 403 ? 'Solo el anfitrión puede eliminar esta sala.'
+          : fallo.status === 404 ? 'Esta sala ya no existe. Vuelve a «Mis salas» para ver tu lista actualizada.'
+            : fallo.status === 401 ? 'Tu sesión expiró. Inicia sesión de nuevo y vuelve a intentarlo.'
+              : fallo.kind === 'network'
+                ? 'No pudimos eliminar la sala. No hay conexión con el servidor: revisa tu internet e inténtalo de nuevo.'
+                : 'No pudimos eliminar la sala. El servidor no respondió. Inténtalo de nuevo en unos segundos.',
+      );
     } finally {
       ocupado.current = false;
       setEliminando(false);

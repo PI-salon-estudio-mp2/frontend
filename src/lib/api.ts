@@ -34,7 +34,7 @@ const MENSAJES_POR_CODIGO: Record<string, string> = {
   ROUTE_NOT_FOUND: 'La dirección del servicio no existe. Revisa la configuración de la aplicación.',
   INVALID_DATA: 'El dato guardado en la base de datos no tiene el formato correcto.',
   DB_UNAVAILABLE: 'El servidor no pudo conectarse con la base de datos. Inténtalo de nuevo en unos segundos.',
-  INTERNAL_ERROR: 'El servidor tuvo un problema al procesar la solicitud.',
+  INTERNAL_ERROR: 'El servidor tuvo un problema. Inténtalo de nuevo en unos segundos.',
   ROOM_CODE_UNAVAILABLE: 'No encontramos un código disponible. Inténtalo de nuevo.',
   USERNAME_TAKEN: MENSAJE_USERNAME_EN_USO,
   EMAIL_TAKEN: MENSAJE_CORREO_EN_USO_REGISTRO,
@@ -48,7 +48,7 @@ function mensajeHttp(status: number, code?: string): string {
   if (status === 401) return 'Tu sesión no es válida o expiró. Inicia sesión de nuevo.';
   if (status === 403) return 'No tienes permiso para ver esta información.';
   if (status === 404) return 'El servidor no encontró la información solicitada.';
-  if (status >= 500) return 'El servidor tuvo un problema al procesar la solicitud.';
+  if (status >= 500) return 'El servidor tuvo un problema. Inténtalo de nuevo en unos segundos.';
   return 'El servidor no pudo responder a la solicitud.';
 }
 
