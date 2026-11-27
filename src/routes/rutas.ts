@@ -17,7 +17,9 @@ export const RUTAS = {
 } as const;
 
 export const rutaSala = (id: string) => `/salas/${encodeURIComponent(id)}`;
-export const rutaEditarSala = (id: string) => `/salas/${encodeURIComponent(id)}/editar`;
+/** Con `desde: 'sala'`, «Cancelar» y «Guardar nombre» vuelven a la sala en vez de a Mis salas (#41). */
+export const rutaEditarSala = (id: string, desde?: 'sala') =>
+  `/salas/${encodeURIComponent(id)}/editar${desde === 'sala' ? '?desde=sala' : ''}`;
 
 export interface EnlaceNav {
   to: string;

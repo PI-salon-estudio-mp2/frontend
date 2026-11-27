@@ -31,10 +31,10 @@ export class ApiError extends Error {
 /** Mensajes para los códigos que documenta backend-api (Swagger / README). */
 const MENSAJES_POR_CODIGO: Record<string, string> = {
   NOT_FOUND: 'Todavía no hay un dato guardado en la base de datos.',
-  ROUTE_NOT_FOUND: 'La dirección del servicio no existe. Revisa la configuración de la aplicación.',
+  ROUTE_NOT_FOUND: 'El servicio no está disponible en este momento. Inténtalo más tarde.',
   INVALID_DATA: 'El dato guardado en la base de datos no tiene el formato correcto.',
   DB_UNAVAILABLE: 'El servidor no pudo conectarse con la base de datos. Inténtalo de nuevo en unos segundos.',
-  INTERNAL_ERROR: 'El servidor tuvo un problema al procesar la solicitud.',
+  INTERNAL_ERROR: 'El servidor tuvo un problema. Inténtalo de nuevo en unos segundos.',
   ROOM_CODE_UNAVAILABLE: 'No encontramos un código disponible. Inténtalo de nuevo.',
   USERNAME_TAKEN: MENSAJE_USERNAME_EN_USO,
   EMAIL_TAKEN: MENSAJE_CORREO_EN_USO_REGISTRO,
@@ -47,8 +47,8 @@ function mensajeHttp(status: number, code?: string): string {
   if (code && MENSAJES_POR_CODIGO[code]) return MENSAJES_POR_CODIGO[code];
   if (status === 401) return 'Tu sesión no es válida o expiró. Inicia sesión de nuevo.';
   if (status === 403) return 'No tienes permiso para ver esta información.';
-  if (status === 404) return 'El servidor no encontró la información solicitada.';
-  if (status >= 500) return 'El servidor tuvo un problema al procesar la solicitud.';
+  if (status === 404) return 'No encontramos lo que buscabas. Inténtalo de nuevo.';
+  if (status >= 500) return 'El servidor tuvo un problema. Inténtalo de nuevo en unos segundos.';
   return 'El servidor no pudo responder a la solicitud.';
 }
 
@@ -181,4 +181,15 @@ export function apiGet<T>(
 export function toApiError(error: unknown): ApiError {
   if (error instanceof ApiError) return error;
   return new ApiError('network', 'Ocurrió un error inesperado. Inténtalo de nuevo.');
+}
+
+/**
+ * Texto para cuando falla la carga de una pantalla (#38): dice qué hacer, sin términos
+ * técnicos como «dirección del servicio» o «base de datos». El detalle queda en la consola.
+ */
+export function mensajeErrorCarga(error: ApiError): string {
+  if (error.kind === 'network') return 'Revisa tu conexión a internet e inténtalo de nuevo.';
+  if (error.kind === 'timeout') return 'El servidor está tardando en responder. Inténtalo de nuevo en unos segundos.';
+  if (error.status === 401) return 'Tu sesión expiró. Vuelve a iniciar sesión e inténtalo de nuevo.';
+  return 'Revisa tu conexión e inténtalo de nuevo. Si sigue fallando, espera unos segundos y vuelve a intentarlo.';
 }

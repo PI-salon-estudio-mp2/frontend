@@ -8,11 +8,12 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { PantallaCarga } from '../components/ui/PantallaCarga';
 import { useAuth } from '../features/auth/AuthContext';
 import { nombrePropio } from '../features/auth/nombres';
-import { AvisoExitoSala } from '../features/salas/AvisoExitoSala';
+import { AvisoExitoSala, avisoIdCopiado, avisoNombreActualizado } from '../features/salas/AvisoExitoSala';
 import { listarSalas } from '../features/salas/api';
 import { TarjetaSala } from '../features/salas/TarjetaSala';
 import { useConsultaSalas } from '../features/salas/useConsultaSalas';
 import { usePageTitle } from '../hooks/usePageTitle';
+import { mensajeErrorCarga } from '../lib/api';
 import { RUTAS } from '../routes/rutas';
 
 export function Panel() {
@@ -94,16 +95,10 @@ function PanelSalas({ saludo }: { saludo: string }) {
         )}
       </div>
       <AvisoExitoSala
-        aviso={copia.id ? {
-          titulo: 'ID copiado',
-          mensaje: `Copiaste el código ${copia.id}. Compártelo con tu grupo para invitarlos.`,
-        } : nombreEliminada ? {
+        aviso={copia.id ? avisoIdCopiado(copia.id) : nombreEliminada ? {
           titulo: 'Sala eliminada',
           mensaje: `Se eliminó «${nombreEliminada}» con todos sus mensajes.`,
-        } : salaRenombrada ? {
-          titulo: 'Nombre actualizado',
-          mensaje: `La sala ahora se llama «${salaRenombrada}».`,
-        } : undefined}
+        } : salaRenombrada ? avisoNombreActualizado(salaRenombrada) : undefined}
         version={copia.version + eliminadas.version}
       />
 
@@ -115,7 +110,7 @@ function PanelSalas({ saludo }: { saludo: string }) {
             title="No pudimos cargar tus salas"
             actions={<Button onClick={reintentar}><Icon name="refresh" />Reintentar</Button>}
           >
-            {estado.error.message}
+            {mensajeErrorCarga(estado.error)}
           </Alert>
         )}
       </div>

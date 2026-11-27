@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { Alert } from '../components/ui/Alert';
 import { AvisoFormulario } from '../components/ui/AvisoFormulario';
 import { Button, ButtonLink } from '../components/ui/Button';
@@ -16,8 +16,8 @@ import {
 } from '../features/salas/api';
 import { useConsultaSalas } from '../features/salas/useConsultaSalas';
 import { usePageTitle } from '../hooks/usePageTitle';
-import { toApiError } from '../lib/api';
-import { RUTAS } from '../routes/rutas';
+import { mensajeErrorCarga, toApiError } from '../lib/api';
+import { RUTAS, rutaSala } from '../routes/rutas';
 
 const ID_NOMBRE = 'nombre-sala';
 
@@ -50,7 +50,7 @@ function CargarSala({ id }: { id: string }) {
             title="No pudimos cargar la sala"
             actions={<Button onClick={reintentar}><Icon name="refresh" />Reintentar</Button>}
           >
-            {estado.error.message}
+            {mensajeErrorCarga(estado.error)}
           </Alert>
         ))}
       </div>
@@ -61,6 +61,9 @@ function CargarSala({ id }: { id: string }) {
 
 function FormularioNombre({ sala }: { sala: SalaAdministrada }) {
   const navigate = useNavigate();
+  // #41 · Si se abrió desde la sala, cancelar o guardar vuelve a la sala; si no, a Mis salas.
+  const [busqueda] = useSearchParams();
+  const volverA = busqueda.get('desde') === 'sala' ? rutaSala(sala.id) : RUTAS.panel;
   const { obtenerToken } = useAuth();
   const [nombre, setNombre] = useState(sala.nombre);
   const [errorNombre, setErrorNombre] = useState<string>();
@@ -100,7 +103,7 @@ function FormularioNombre({ sala }: { sala: SalaAdministrada }) {
       if (signal.aborted) return;
       const actualizada = await actualizarSala(sala.id, limpio, token, signal);
       if (!signal.aborted) {
-        navigate(RUTAS.panel, { replace: true, state: { salaRenombrada: actualizada.nombre } });
+        navigate(volverA, { replace: true, state: { salaRenombrada: actualizada.nombre } });
       }
     } catch (e) {
       if (signal.aborted) return;
@@ -147,7 +150,7 @@ function FormularioNombre({ sala }: { sala: SalaAdministrada }) {
             {guardando && <Spinner className="size-5 text-current" />}
             {guardando ? 'Guardando…' : 'Guardar nombre'}
           </Button>
-          <ButtonLink variant="secondary" to={RUTAS.panel}>Cancelar</ButtonLink>
+          <ButtonLink variant="secondary" to={volverA}>Cancelar</ButtonLink>
         </div>
       </form>
     </Card>

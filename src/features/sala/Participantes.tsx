@@ -19,7 +19,7 @@ export function Participantes({ presentes, miUid, anfitrionUid }: ParticipantesP
   return (
     <section aria-labelledby={idTitulo} className="rounded-card border border-line bg-surface p-5">
       <h2 id={idTitulo} className="text-lg font-bold text-ink">
-        Participantes <span className="font-normal text-muted">({presentes.length} conectados)</span>
+        Participantes <span className="font-normal text-muted">({presentes.length} {presentes.length === 1 ? 'conectado' : 'conectados'})</span>
       </h2>
       {ordenados.length === 0 ? (
         <p className="mt-3 text-muted">Cargando participantes…</p>

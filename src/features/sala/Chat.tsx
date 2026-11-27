@@ -123,7 +123,8 @@ export function Chat({ mensajes, miUid, conectado, enviar, anteriores, onCargarA
           onScroll={alDesplazar}
           tabIndex={0}
           aria-label="Mensajes de la sala"
-          className="h-[min(55vh,32rem)] overflow-y-auto px-5 py-4"
+          // En celular la lista es más baja para que el campo de escribir se vea sin hacer scroll (#35).
+          className="h-[min(32dvh,32rem)] overflow-y-auto px-5 py-4 sm:h-[min(45dvh,32rem)] lg:h-[min(55vh,32rem)]"
         >
           {mensajes.length === 0 ? (
             <div className="grid h-full place-items-center text-center text-muted">

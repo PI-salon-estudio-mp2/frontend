@@ -170,7 +170,8 @@ export const MENSAJES_TIEMPO_REAL: Record<string, string> = {
   PROFILE_INCOMPLETE: 'Falta elegir tu nombre de usuario para terminar de crear la cuenta.',
   SERVER_UNAVAILABLE: 'El servidor de tiempo real no respondió. Inténtalo de nuevo en unos segundos.',
   TIMEOUT: 'El servidor tardó demasiado en responder. Inténtalo de nuevo.',
-  SIN_CONFIGURAR: 'La aplicación no tiene configurada la dirección del servidor de tiempo real (variable VITE_REALTIME_URL).',
+  // Sin términos técnicos para el estudiante (#36); el detalle técnico va a la consola.
+  SIN_CONFIGURAR: 'El chat no está disponible en este momento. Inténtalo más tarde.',
 };
 
 export function mensajeDeError(error: ErrorTiempoReal): string {

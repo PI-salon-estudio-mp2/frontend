@@ -130,7 +130,7 @@ it('mantiene la solicitud al reintentar y abre el interior como administrador al
   // El interior ya no consulta la API: los datos llegan por Socket.IO (room:join).
   expect(pedir).toHaveBeenCalledTimes(2);
 
-  fireEvent.click(screen.getByRole('link', { name: 'Salir de la sala' }));
+  fireEvent.click(screen.getAllByRole('link', { name: 'Salir de la sala' })[0]);
   await screen.findByRole('heading', { name: sala.nombre });
   expect(screen.getByText(sala.id, { selector: '.select-all' })).toBeTruthy();
   const entrar = screen.getByRole('link', { name: 'Entrar a Álgebra' });
@@ -158,6 +158,24 @@ it('copia el ID de la sala y confirma el resultado en una región de estado', as
   fireEvent.click(boton);
   await alerta.findByText('No pudimos copiar el ID');
   expect(alerta.getByText('Vuelve a pulsar «Copiar ID» o selecciona el código y cópialo manualmente.')).toBeTruthy();
+  expect(screen.queryByText('ID copiado')).toBeNull();
+});
+
+it('dentro de la sala, «Copiar ID» confirma con el mismo aviso que en Mis salas (#40)', async () => {
+  const portapapeles = Object.create(navigator);
+  const escribir = vi.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('Sin permiso'));
+  Object.defineProperty(portapapeles, 'clipboard', { value: { writeText: escribir } });
+  vi.stubGlobal('navigator', portapapeles);
+  montar(rutaSala(sala.id));
+
+  const boton = await screen.findByRole('button', { name: 'Copiar ID de Álgebra' });
+  fireEvent.click(boton);
+  const confirmacion = within((await screen.findByText('ID copiado')).closest<HTMLElement>('[role="status"]')!);
+  expect(confirmacion.getByText(`Copiaste el código ${sala.id}. Compártelo con tu grupo para invitarlos.`)).toBeTruthy();
+  expect(escribir).toHaveBeenCalledWith(sala.id);
+  fireEvent.click(boton);
+  await screen.findByText('No pudimos copiar el ID');
+  expect(screen.getByText('Vuelve a pulsar «Copiar ID» o selecciona el código y cópialo manualmente.')).toBeTruthy();
   expect(screen.queryByText('ID copiado')).toBeNull();
 });
 
@@ -192,6 +210,30 @@ it('renombra la sala con PATCH, vuelve al panel y confirma el cambio', async () 
   expect(JSON.parse(String(opciones.body))).toEqual({ nombre: 'Álgebra lineal' });
   const confirmacion = within((await screen.findByText('Nombre actualizado')).closest<HTMLElement>('[role="status"]')!);
   expect(confirmacion.getByText('La sala ahora se llama «Álgebra lineal».')).toBeTruthy();
+});
+
+it('«Editar nombre» abierto desde la sala vuelve a la sala al cancelar y al guardar (#41)', async () => {
+  const renombrada = { ...sala, nombre: 'Álgebra lineal' };
+  pedir.mockResolvedValueOnce(respuesta(sala))
+    .mockResolvedValueOnce(respuesta(sala))
+    .mockResolvedValueOnce(respuesta(renombrada));
+  montar(rutaSala(sala.id));
+  const editar = await screen.findByRole('link', { name: 'Editar nombre de Álgebra' });
+  expect(editar.getAttribute('href')).toBe(rutaEditarSala(sala.id, 'sala'));
+
+  fireEvent.click(editar);
+  await screen.findByRole('textbox', { name: /Nombre de la sala/ });
+  expect(screen.getByRole('link', { name: 'Cancelar' }).getAttribute('href')).toBe(rutaSala(sala.id));
+  fireEvent.click(screen.getByRole('link', { name: 'Cancelar' }));
+  fireEvent.click(await screen.findByRole('link', { name: 'Editar nombre de Álgebra' }));
+
+  const campo = await screen.findByRole('textbox', { name: /Nombre de la sala/ });
+  fireEvent.change(campo, { target: { value: 'Álgebra lineal' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Guardar nombre' }));
+  const confirmacion = within((await screen.findByText('Nombre actualizado')).closest<HTMLElement>('[role="status"]')!);
+  expect(confirmacion.getByText('La sala ahora se llama «Álgebra lineal».')).toBeTruthy();
+  expect(screen.getByRole('heading', { name: 'Datos de la sala' })).toBeTruthy(); // estamos dentro de la sala
+  expect(screen.queryByRole('textbox', { name: /Nombre de la sala/ })).toBeNull();
 });
 
 it('valida el nombre antes de enviarlo y no envía el mismo nombre', async () => {
