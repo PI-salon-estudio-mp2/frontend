@@ -212,6 +212,30 @@ it('renombra la sala con PATCH, vuelve al panel y confirma el cambio', async () 
   expect(confirmacion.getByText('La sala ahora se llama «Álgebra lineal».')).toBeTruthy();
 });
 
+it('«Editar nombre» abierto desde la sala vuelve a la sala al cancelar y al guardar (#41)', async () => {
+  const renombrada = { ...sala, nombre: 'Álgebra lineal' };
+  pedir.mockResolvedValueOnce(respuesta(sala))
+    .mockResolvedValueOnce(respuesta(sala))
+    .mockResolvedValueOnce(respuesta(renombrada));
+  montar(rutaSala(sala.id));
+  const editar = await screen.findByRole('link', { name: 'Editar nombre de Álgebra' });
+  expect(editar.getAttribute('href')).toBe(rutaEditarSala(sala.id, 'sala'));
+
+  fireEvent.click(editar);
+  await screen.findByRole('textbox', { name: /Nombre de la sala/ });
+  expect(screen.getByRole('link', { name: 'Cancelar' }).getAttribute('href')).toBe(rutaSala(sala.id));
+  fireEvent.click(screen.getByRole('link', { name: 'Cancelar' }));
+  fireEvent.click(await screen.findByRole('link', { name: 'Editar nombre de Álgebra' }));
+
+  const campo = await screen.findByRole('textbox', { name: /Nombre de la sala/ });
+  fireEvent.change(campo, { target: { value: 'Álgebra lineal' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Guardar nombre' }));
+  const confirmacion = within((await screen.findByText('Nombre actualizado')).closest<HTMLElement>('[role="status"]')!);
+  expect(confirmacion.getByText('La sala ahora se llama «Álgebra lineal».')).toBeTruthy();
+  expect(screen.getByRole('heading', { name: 'Datos de la sala' })).toBeTruthy(); // estamos dentro de la sala
+  expect(screen.queryByRole('textbox', { name: /Nombre de la sala/ })).toBeNull();
+});
+
 it('valida el nombre antes de enviarlo y no envía el mismo nombre', async () => {
   pedir.mockResolvedValueOnce(respuesta(sala));
   montar(rutaEditarSala(sala.id));

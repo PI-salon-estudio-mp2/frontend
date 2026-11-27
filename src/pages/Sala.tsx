@@ -10,7 +10,7 @@ import { useAuth } from '../features/auth/AuthContext';
 import { Chat } from '../features/sala/Chat';
 import { Participantes } from '../features/sala/Participantes';
 import { useAnunciosSala } from '../features/sala/useAnunciosSala';
-import { AvisoExitoSala, avisoIdCopiado } from '../features/salas/AvisoExitoSala';
+import { AvisoExitoSala, avisoIdCopiado, avisoNombreActualizado } from '../features/salas/AvisoExitoSala';
 import { EliminarSala } from '../features/salas/EliminarSala';
 import { mensajeDeError, normalizarIdSala, type SalaEnVivo } from '../features/tiempo-real/contrato';
 import { EstadoConexion } from '../features/tiempo-real/EstadoConexion';
@@ -56,7 +56,7 @@ function InteriorSala({ id, miUid }: { id: string; miUid: string }) {
       {/* Editar y eliminar solo los ve el anfitrión; a los invitados la API además les responde 403. */}
       {esAnfitrion && (
         <>
-          <ButtonLink variant="secondary" to={rutaEditarSala(id)} aria-label={`Editar nombre de ${titulo}`}>
+          <ButtonLink variant="secondary" to={rutaEditarSala(id, 'sala')} aria-label={`Editar nombre de ${titulo}`}>
             Editar nombre
           </ButtonLink>
           <EliminarSala
@@ -88,12 +88,13 @@ function InteriorSala({ id, miUid }: { id: string; miUid: string }) {
       <PageHeader title={titulo} actions={acciones} />
 
       {estado.fase === 'lista' && <EstadoConexion conexion={conexion} onReintentar={reconectar} />}
-      {/* Un solo aviso a la vez: el de «ID copiado» reemplaza al de «Sala creada». */}
+      {/* Un solo aviso a la vez: el de «ID copiado» reemplaza al de «Sala creada» o «Nombre actualizado». */}
       <AvisoExitoSala
         aviso={copia.id ? avisoIdCopiado(copia.id)
-          : copia.version === 0 && estado.fase === 'lista' && state?.salaCreada === id
-            ? { titulo: 'Sala creada', mensaje: 'Comparte el ID para que tu grupo pueda entrar.' }
-            : undefined}
+          : copia.version > 0 || estado.fase !== 'lista' ? undefined
+            : state?.salaCreada === id ? { titulo: 'Sala creada', mensaje: 'Comparte el ID para que tu grupo pueda entrar.' }
+              : typeof state?.salaRenombrada === 'string' ? avisoNombreActualizado(state.salaRenombrada)
+                : undefined}
         version={copia.version}
       />
 

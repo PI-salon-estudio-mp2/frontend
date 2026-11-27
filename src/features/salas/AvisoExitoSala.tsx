@@ -3,6 +3,11 @@ import { Icon } from '../../components/ui/Icon';
 
 const DURACION_AVISO_MS = 6000;
 
+/** Mismo aviso al renombrar, se vuelva a Mis salas o a la sala (#41). */
+export function avisoNombreActualizado(nombre: string) {
+  return { titulo: 'Nombre actualizado', mensaje: `La sala ahora se llama «${nombre}».` };
+}
+
 /** Mismo aviso al copiar el ID en Mis salas y dentro de la sala (#40). */
 export function avisoIdCopiado(id: string) {
   return { titulo: 'ID copiado', mensaje: `Copiaste el código ${id}. Compártelo con tu grupo para invitarlos.` };
