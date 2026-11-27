@@ -161,6 +161,24 @@ it('copia el ID de la sala y confirma el resultado en una región de estado', as
   expect(screen.queryByText('ID copiado')).toBeNull();
 });
 
+it('dentro de la sala, «Copiar ID» confirma con el mismo aviso que en Mis salas (#40)', async () => {
+  const portapapeles = Object.create(navigator);
+  const escribir = vi.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('Sin permiso'));
+  Object.defineProperty(portapapeles, 'clipboard', { value: { writeText: escribir } });
+  vi.stubGlobal('navigator', portapapeles);
+  montar(rutaSala(sala.id));
+
+  const boton = await screen.findByRole('button', { name: 'Copiar ID de Álgebra' });
+  fireEvent.click(boton);
+  const confirmacion = within((await screen.findByText('ID copiado')).closest<HTMLElement>('[role="status"]')!);
+  expect(confirmacion.getByText(`Copiaste el código ${sala.id}. Compártelo con tu grupo para invitarlos.`)).toBeTruthy();
+  expect(escribir).toHaveBeenCalledWith(sala.id);
+  fireEvent.click(boton);
+  await screen.findByText('No pudimos copiar el ID');
+  expect(screen.getByText('Vuelve a pulsar «Copiar ID» o selecciona el código y cópialo manualmente.')).toBeTruthy();
+  expect(screen.queryByText('ID copiado')).toBeNull();
+});
+
 it('cada sala del panel ofrece «Editar nombre» y lleva a la pantalla de edición', async () => {
   pedir.mockResolvedValueOnce(respuesta([sala, { ...sala, id: 'BQB-15M', nombre: 'Biología' }]));
   montar();

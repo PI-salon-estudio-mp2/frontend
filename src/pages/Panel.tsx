@@ -8,7 +8,7 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { PantallaCarga } from '../components/ui/PantallaCarga';
 import { useAuth } from '../features/auth/AuthContext';
 import { nombrePropio } from '../features/auth/nombres';
-import { AvisoExitoSala } from '../features/salas/AvisoExitoSala';
+import { AvisoExitoSala, avisoIdCopiado } from '../features/salas/AvisoExitoSala';
 import { listarSalas } from '../features/salas/api';
 import { TarjetaSala } from '../features/salas/TarjetaSala';
 import { useConsultaSalas } from '../features/salas/useConsultaSalas';
@@ -95,10 +95,7 @@ function PanelSalas({ saludo }: { saludo: string }) {
         )}
       </div>
       <AvisoExitoSala
-        aviso={copia.id ? {
-          titulo: 'ID copiado',
-          mensaje: `Copiaste el código ${copia.id}. Compártelo con tu grupo para invitarlos.`,
-        } : nombreEliminada ? {
+        aviso={copia.id ? avisoIdCopiado(copia.id) : nombreEliminada ? {
           titulo: 'Sala eliminada',
           mensaje: `Se eliminó «${nombreEliminada}» con todos sus mensajes.`,
         } : salaRenombrada ? {

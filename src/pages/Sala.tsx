@@ -10,7 +10,7 @@ import { useAuth } from '../features/auth/AuthContext';
 import { Chat } from '../features/sala/Chat';
 import { Participantes } from '../features/sala/Participantes';
 import { useAnunciosSala } from '../features/sala/useAnunciosSala';
-import { AvisoExitoSala } from '../features/salas/AvisoExitoSala';
+import { AvisoExitoSala, avisoIdCopiado } from '../features/salas/AvisoExitoSala';
 import { EliminarSala } from '../features/salas/EliminarSala';
 import { mensajeDeError, normalizarIdSala, type SalaEnVivo } from '../features/tiempo-real/contrato';
 import { EstadoConexion } from '../features/tiempo-real/EstadoConexion';
@@ -37,6 +37,9 @@ function InteriorSala({ id, miUid }: { id: string; miUid: string }) {
   const navigate = useNavigate();
   const titulo = estado.fase === 'lista' ? estado.sala.nombre : 'Sala de estudio';
   usePageTitle(titulo);
+  // #40 · Copiar el ID confirma con el mismo aviso flotante que en Mis salas.
+  const [copia, setCopia] = useState<{ id: string | null; version: number }>({ id: null, version: 0 });
+  const notificarCopia = (copiado: string | null) => setCopia((a) => ({ id: copiado, version: a.version + 1 }));
 
   // US-07 · Si el anfitrión elimina la sala con nosotros dentro, volvemos al panel con un aviso.
   const ultimoNombre = useRef(titulo);
@@ -85,10 +88,13 @@ function InteriorSala({ id, miUid }: { id: string; miUid: string }) {
       <PageHeader title={titulo} actions={acciones} />
 
       {estado.fase === 'lista' && <EstadoConexion conexion={conexion} onReintentar={reconectar} />}
+      {/* Un solo aviso a la vez: el de «ID copiado» reemplaza al de «Sala creada». */}
       <AvisoExitoSala
-        aviso={estado.fase === 'lista' && state?.salaCreada === id
-          ? { titulo: 'Sala creada', mensaje: 'Comparte el ID para que tu grupo pueda entrar.' }
-          : undefined}
+        aviso={copia.id ? avisoIdCopiado(copia.id)
+          : copia.version === 0 && estado.fase === 'lista' && state?.salaCreada === id
+            ? { titulo: 'Sala creada', mensaje: 'Comparte el ID para que tu grupo pueda entrar.' }
+            : undefined}
+        version={copia.version}
       />
 
       {estado.fase === 'uniendo' && (
@@ -144,7 +150,7 @@ function InteriorSala({ id, miUid }: { id: string; miUid: string }) {
           />
           <aside aria-label="Información de la sala" className="space-y-6">
             <Participantes presentes={presentes} miUid={miUid} anfitrionUid={estado.sala.anfitrionUid} />
-            <DatosSala sala={estado.sala} />
+            <DatosSala sala={estado.sala} notificarCopia={notificarCopia} />
           </aside>
         </div>
       )}
@@ -157,15 +163,22 @@ function InteriorSala({ id, miUid }: { id: string; miUid: string }) {
   );
 }
 
-function DatosSala({ sala }: { sala: SalaEnVivo }) {
-  const [copia, setCopia] = useState<'ok' | 'error'>();
+function DatosSala({ sala, notificarCopia }: { sala: SalaEnVivo; notificarCopia: (id: string | null) => void }) {
+  const [errorCopia, setErrorCopia] = useState(false);
+  const copiando = useRef(false);
 
   async function copiarId() {
+    if (copiando.current) return;
+    copiando.current = true;
+    setErrorCopia(false);
     try {
       await navigator.clipboard.writeText(sala.id);
-      setCopia('ok');
+      notificarCopia(sala.id);
     } catch {
-      setCopia('error');
+      setErrorCopia(true);
+      notificarCopia(null);
+    } finally {
+      copiando.current = false;
     }
   }
 
@@ -187,10 +200,14 @@ function DatosSala({ sala }: { sala: SalaEnVivo }) {
           <dd>{sala.rol === 'administrador' ? 'Administrador' : 'Invitado'}</dd>
         </div>
       </dl>
-      <p role="status" aria-atomic="true" className="mt-4 text-sm font-bold">
-        {copia === 'ok' && <span className="text-success-700">ID copiado. Compártelo con tu grupo.</span>}
-        {copia === 'error' && <span className="text-danger-700">No pudimos copiar el ID. Selecciónalo y cópialo manualmente.</span>}
-      </p>
+      {/* Mismo error que en la tarjeta de Mis salas (#40). */}
+      <div role="alert" aria-atomic="true" className="mt-4 empty:mt-0">
+        {errorCopia && (
+          <Alert tone="danger" title="No pudimos copiar el ID">
+            Vuelve a pulsar «Copiar ID» o selecciona el código y cópialo manualmente.
+          </Alert>
+        )}
+      </div>
     </Card>
   );
 }
