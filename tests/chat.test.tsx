@@ -88,3 +88,8 @@ it('lista a los conectados con el anfitrión primero y marca «(tú)»', () => {
   expect(items[1].textContent).toMatch(/@ana \(tú\)/);
   expect(screen.getByText('(2 conectados)')).toBeTruthy();
 });
+
+it('usa el singular cuando solo hay una persona conectada (#39)', () => {
+  render(<Participantes miUid="ana" anfitrionUid="ana" presentes={[{ uid: 'ana', username: 'ana', avatar: 'verde' }]} />);
+  expect(screen.getByText('(1 conectado)')).toBeTruthy();
+});
