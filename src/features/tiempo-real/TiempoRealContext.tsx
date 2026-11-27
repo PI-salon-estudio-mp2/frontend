@@ -62,6 +62,7 @@ export function TiempoRealProvider({ children }: { children: ReactNode }) {
   const uid = estado.status === 'autenticado' ? estado.user.uid : null;
   const socketRef = useRef<SocketApp | null>(null);
   const tokenRenovado = useRef(false);
+  const avisoConfiguracion = useRef(false);
   const reintento = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [conexion, setConexion] = useState<Conexion>({ estado: 'inactivo' });
 
@@ -77,6 +78,10 @@ export function TiempoRealProvider({ children }: { children: ReactNode }) {
 
   const activar = useCallback((): SocketApp | null => {
     if (!REALTIME_URL) {
+      if (!avisoConfiguracion.current) {
+        avisoConfiguracion.current = true;
+        console.error('Falta la variable de entorno VITE_REALTIME_URL: no se puede conectar con el servidor de tiempo real.');
+      }
       setConexion({ estado: 'error', error: error('SIN_CONFIGURAR') });
       return null;
     }
