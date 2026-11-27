@@ -103,7 +103,7 @@ it('dentro de la sala, el anfitrión ve «Editar nombre» y «Eliminar»; el inv
   montar(rutaSala('K7P2QX9M'));
   expect(screen.queryByRole('link', { name: /Editar nombre/ })).toBeNull();
   expect(screen.queryByRole('button', { name: /Eliminar/ })).toBeNull();
-  expect(screen.getByRole('link', { name: 'Salir de la sala' })).toBeTruthy();
+  expect(screen.getAllByRole('link', { name: 'Salir de la sala' })[0]).toBeTruthy();
 });
 
 it('si el anfitrión elimina la sala con un invitado dentro, este vuelve al panel con un aviso', async () => {

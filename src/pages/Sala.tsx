@@ -63,15 +63,25 @@ function InteriorSala({ id, miUid }: { id: string; miUid: string }) {
           />
         </>
       )}
-      <ButtonLink variant="secondary" to={RUTAS.panel}>
-        <Icon name="arrowLeft" />
-        Salir de la sala
-      </ButtonLink>
+      {/* En celular «Salir de la sala» va en la barra fija de arriba (#35). */}
+      <span className="hidden lg:contents">
+        <ButtonLink variant="secondary" to={RUTAS.panel}>
+          <Icon name="arrowLeft" />
+          Salir de la sala
+        </ButtonLink>
+      </span>
     </>
   );
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
+    <div className="mx-auto max-w-6xl px-4 pb-10 sm:px-6 lg:py-14">
+      {/* Celular: «Salir de la sala» siempre a la vista, fijo debajo del encabezado al hacer scroll (#35). */}
+      <div className="sticky top-16 z-20 -mx-4 mb-4 border-b border-line bg-canvas/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6 lg:hidden">
+        <ButtonLink variant="secondary" size="sm" to={RUTAS.panel}>
+          <Icon name="arrowLeft" />
+          Salir de la sala
+        </ButtonLink>
+      </div>
       <PageHeader title={titulo} actions={acciones} />
 
       {estado.fase === 'lista' && <EstadoConexion conexion={conexion} onReintentar={reconectar} />}
