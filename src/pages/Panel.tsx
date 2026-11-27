@@ -13,6 +13,7 @@ import { listarSalas } from '../features/salas/api';
 import { TarjetaSala } from '../features/salas/TarjetaSala';
 import { useConsultaSalas } from '../features/salas/useConsultaSalas';
 import { usePageTitle } from '../hooks/usePageTitle';
+import { mensajeErrorCarga } from '../lib/api';
 import { RUTAS } from '../routes/rutas';
 
 export function Panel() {
@@ -115,7 +116,7 @@ function PanelSalas({ saludo }: { saludo: string }) {
             title="No pudimos cargar tus salas"
             actions={<Button onClick={reintentar}><Icon name="refresh" />Reintentar</Button>}
           >
-            {estado.error.message}
+            {mensajeErrorCarga(estado.error)}
           </Alert>
         )}
       </div>

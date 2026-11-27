@@ -16,7 +16,7 @@ import {
 } from '../features/salas/api';
 import { useConsultaSalas } from '../features/salas/useConsultaSalas';
 import { usePageTitle } from '../hooks/usePageTitle';
-import { toApiError } from '../lib/api';
+import { mensajeErrorCarga, toApiError } from '../lib/api';
 import { RUTAS } from '../routes/rutas';
 
 const ID_NOMBRE = 'nombre-sala';
@@ -50,7 +50,7 @@ function CargarSala({ id }: { id: string }) {
             title="No pudimos cargar la sala"
             actions={<Button onClick={reintentar}><Icon name="refresh" />Reintentar</Button>}
           >
-            {estado.error.message}
+            {mensajeErrorCarga(estado.error)}
           </Alert>
         ))}
       </div>
